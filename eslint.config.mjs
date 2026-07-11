@@ -13,7 +13,7 @@ const typedTypeScriptConfigs = tseslint.configs.recommendedTypeChecked.map(
 
 export default tseslint.config(
   {
-    ignores: ['out', 'dist', 'node_modules', 'coverage', '**/*.d.ts'],
+    ignores: ['out', 'dist', 'node_modules', 'coverage', '.supermemory', '**/*.d.ts'],
   },
   js.configs.recommended,
   {
