@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useSupermemory } from '@/state/supermemory-context';
 import { type Appearance, useTheme } from '@/state/theme-context';
@@ -29,8 +28,14 @@ const appearanceOptions: Array<{
 
 export function SettingsPage() {
   const { appearance, setAppearance } = useTheme();
-  const { baseUrl, setBaseUrl, status, lastCheckedAt, testConnection } =
-    useSupermemory();
+  const {
+    baseUrl,
+    setBaseUrl,
+    status,
+    lastCheckedAt,
+    connectionMessage,
+    testConnection,
+  } = useSupermemory();
 
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
@@ -92,6 +97,9 @@ export function SettingsPage() {
                     Last checked {format(lastCheckedAt, 'p')}
                   </p>
                 ) : null}
+                {connectionMessage ? (
+                  <p className="text-xs text-muted-foreground">{connectionMessage}</p>
+                ) : null}
               </div>
               <Button
                 type="button"
@@ -103,23 +111,6 @@ export function SettingsPage() {
                 <Wifi className="h-4 w-4" aria-hidden="true" />
                 Test connection
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>About Afterthought</CardTitle>
-            <CardDescription>
-              A reflective desktop journal shell for daily writing and eventual
-              longitudinal memory.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Separator />
-            <div className="flex items-center justify-between gap-4 text-sm">
-              <span className="text-muted-foreground">Version</span>
-              <span>0.1.0 placeholder</span>
             </div>
           </CardContent>
         </Card>
