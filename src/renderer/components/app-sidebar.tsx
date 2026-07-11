@@ -9,10 +9,8 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
-import { SupermemoryStatus } from '@/components/supermemory-status';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useSupermemory } from '@/state/supermemory-context';
 
 const navItems = [
   { label: 'Today', to: '/today', icon: Home },
@@ -23,8 +21,6 @@ const navItems = [
 ] as const;
 
 export function AppSidebar({ onCollapse }: { onCollapse: () => void }) {
-  const { status } = useSupermemory();
-
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card/55 px-3 py-4">
       <div className="mb-8 flex items-center justify-between gap-2 px-2">
@@ -33,8 +29,9 @@ export function AppSidebar({ onCollapse }: { onCollapse: () => void }) {
             <NotebookPen className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-5">Afterthought</p>
-            <p className="truncate text-xs text-muted-foreground">Private journal</p>
+            <p className="truncate font-sans text-sm font-semibold leading-5">
+              Afterthought
+            </p>
           </div>
         </div>
         <Button
@@ -66,10 +63,6 @@ export function AppSidebar({ onCollapse }: { onCollapse: () => void }) {
           </NavLink>
         ))}
       </nav>
-
-      <div className="mt-auto space-y-3 px-1">
-        <SupermemoryStatus status={status} compact />
-      </div>
     </aside>
   );
 }
