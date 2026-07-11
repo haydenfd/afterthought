@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+release/
+build/
+
+# Generated caches
+.vite/
+.vitest/
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Electron artifacts
+*.asar
+*.dmg
+*.exe
+*.AppImage
