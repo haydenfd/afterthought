@@ -1,0 +1,87 @@
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  createAfterthoughtSupermemoryClient,
+  DEFAULT_SUPERMEMORY_URL,
+  type ConnectionCheckResult,
+  type SupermemoryConnectionStatus,
+} from '@/lib/supermemory';
+
+interface SupermemoryState {
+  baseUrl: string;
+  setBaseUrl: (value: string) => void;
+  status: SupermemoryConnectionStatus;
+  lastCheckedAt: Date | null;
+  testConnection: () => Promise<ConnectionCheckResult>;
+}
+
+const SupermemoryContext = createContext<SupermemoryState | null>(null);
+
+export function SupermemoryProvider({ children }: { children: ReactNode }) {
+  const [baseUrl, setBaseUrlState] = useState(DEFAULT_SUPERMEMORY_URL);
+  const [status, setStatus] = useState<SupermemoryConnectionStatus>('checking');
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+
+  const setBaseUrl = useCallback((value: string): void => {
+    setBaseUrlState(value);
+    setStatus('checking');
+  }, []);
+
+  const testConnection = useCallback(async (): Promise<ConnectionCheckResult> => {
+    setStatus('checking');
+    const result = await createAfterthoughtSupermemoryClient(baseUrl).checkConnection();
+    setStatus(result.status);
+    setLastCheckedAt(result.checkedAt);
+    return result;
+  }, [baseUrl]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void createAfterthoughtSupermemoryClient(baseUrl)
+      .checkConnection()
+      .then((result) => {
+        if (isMounted) {
+          setStatus(result.status);
+          setLastCheckedAt(result.checkedAt);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [baseUrl]);
+
+  const value = useMemo<SupermemoryState>(
+    () => ({
+      baseUrl,
+      setBaseUrl,
+      status,
+      lastCheckedAt,
+      testConnection,
+    }),
+    [baseUrl, setBaseUrl, status, lastCheckedAt, testConnection],
+  );
+
+  return (
+    <SupermemoryContext.Provider value={value}>{children}</SupermemoryContext.Provider>
+  );
+}
+
+export function useSupermemory(): SupermemoryState {
+  const context = useContext(SupermemoryContext);
+
+  if (!context) {
+    throw new Error('useSupermemory must be used within SupermemoryProvider');
+  }
+
+  return context;
+}
