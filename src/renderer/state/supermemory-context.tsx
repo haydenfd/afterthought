@@ -20,6 +20,7 @@ interface SupermemoryState {
   setBaseUrl: (value: string) => void;
   status: SupermemoryConnectionStatus;
   lastCheckedAt: Date | null;
+  connectionMessage: string | null;
   testConnection: () => Promise<ConnectionCheckResult>;
 }
 
@@ -29,10 +30,12 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
   const [baseUrl, setBaseUrlState] = useState(DEFAULT_SUPERMEMORY_URL);
   const [status, setStatus] = useState<SupermemoryConnectionStatus>('checking');
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
 
   const setBaseUrl = useCallback((value: string): void => {
     setBaseUrlState(value);
     setStatus('checking');
+    setConnectionMessage(null);
   }, []);
 
   const testConnection = useCallback(async (): Promise<ConnectionCheckResult> => {
@@ -40,6 +43,7 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
     const result = await createAfterthoughtSupermemoryClient(baseUrl).checkConnection();
     setStatus(result.status);
     setLastCheckedAt(result.checkedAt);
+    setConnectionMessage(result.message ?? null);
     return result;
   }, [baseUrl]);
 
@@ -52,6 +56,7 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
         if (isMounted) {
           setStatus(result.status);
           setLastCheckedAt(result.checkedAt);
+          setConnectionMessage(result.message ?? null);
         }
       });
 
@@ -66,9 +71,10 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
       setBaseUrl,
       status,
       lastCheckedAt,
+      connectionMessage,
       testConnection,
     }),
-    [baseUrl, setBaseUrl, status, lastCheckedAt, testConnection],
+    [baseUrl, setBaseUrl, status, lastCheckedAt, connectionMessage, testConnection],
   );
 
   return (

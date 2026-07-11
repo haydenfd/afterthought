@@ -1,4 +1,3 @@
-import Supermemory from 'supermemory';
 import { z } from 'zod';
 
 export const DEFAULT_SUPERMEMORY_URL = 'http://localhost:6767';
@@ -37,7 +36,6 @@ export interface ProfileSnapshot {
 }
 
 type FetchLike = typeof fetch;
-type SupermemorySdkClient = Awaited<ReturnType<typeof Supermemory.local>>;
 
 const urlSchema = z.string().url();
 
@@ -51,7 +49,6 @@ const journalEntrySchema = z.object({
 export class AfterthoughtSupermemoryClient {
   private readonly fetchFn: FetchLike;
   private readonly timeoutMs: number;
-  private readonly sdkClients = new Map<string, Promise<SupermemorySdkClient>>();
 
   constructor(
     private readonly baseUrl: string = DEFAULT_SUPERMEMORY_URL,
@@ -72,20 +69,32 @@ export class AfterthoughtSupermemoryClient {
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), this.timeoutMs);
-
     try {
-      void (await this.getSdkClient(parsedUrl));
+      const desktopResult =
+        await window.afterthought?.supermemory.checkConnection(parsedUrl);
 
-      const response = await this.fetchFn(parsedUrl, {
-        method: 'GET',
-        cache: 'no-store',
-        signal: controller.signal,
-      });
+      if (desktopResult) {
+        return {
+          ...desktopResult,
+          checkedAt: new Date(),
+        };
+      }
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), this.timeoutMs);
+
+      try {
+        await this.fetchFn(parsedUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
 
       return {
-        status: response.status < 500 ? 'connected' : 'offline',
+        status: 'connected',
         url: parsedUrl,
         checkedAt: new Date(),
       };
@@ -94,9 +103,8 @@ export class AfterthoughtSupermemoryClient {
         status: 'offline',
         url: parsedUrl,
         checkedAt: new Date(),
+        message: 'Could not reach Supermemory Local at this address.',
       };
-    } finally {
-      window.clearTimeout(timeoutId);
     }
   }
 
@@ -121,23 +129,6 @@ export class AfterthoughtSupermemoryClient {
       themes: [],
       source: 'placeholder',
     });
-  }
-
-  private getSdkClient(baseUrl: string): Promise<SupermemorySdkClient> {
-    const existingClient = this.sdkClients.get(baseUrl);
-    if (existingClient) {
-      return existingClient;
-    }
-
-    const client = Supermemory.local({
-      baseURL: baseUrl,
-      start: false,
-      timeout: this.timeoutMs,
-      maxRetries: 0,
-      fetch: this.fetchFn,
-    });
-    this.sdkClients.set(baseUrl, client);
-    return client;
   }
 }
 

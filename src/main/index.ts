@@ -1,7 +1,56 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
 const isDevelopment = !app.isPackaged;
+
+interface SupermemoryConnectionResult {
+  status: 'connected' | 'offline';
+  url: string;
+  message?: string;
+}
+
+async function checkSupermemoryConnection(
+  value: unknown,
+): Promise<SupermemoryConnectionResult> {
+  if (typeof value !== 'string') {
+    return {
+      status: 'offline',
+      url: '',
+      message: 'Invalid local URL',
+    };
+  }
+
+  const url = value.trim().replace(/\/+$/, '');
+
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new TypeError('Unsupported protocol');
+    }
+  } catch {
+    return {
+      status: 'offline',
+      url: value,
+      message: 'Enter a valid http:// or https:// local URL.',
+    };
+  }
+
+  try {
+    await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(1_500),
+    });
+
+    return { status: 'connected', url };
+  } catch {
+    return {
+      status: 'offline',
+      url,
+      message: 'Could not reach Supermemory Local at this address.',
+    };
+  }
+}
 
 function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -38,6 +87,9 @@ function createMainWindow(): void {
 
 void app.whenReady().then(() => {
   app.setName('Afterthought');
+  ipcMain.handle('supermemory:check-connection', (_event, url: unknown) =>
+    checkSupermemoryConnection(url),
+  );
   createMainWindow();
 
   app.on('activate', () => {
