@@ -43,6 +43,13 @@
     @apply border-border;
   }
 
+  /* Theme changes should swap the palette as one frame, not animate each control. */
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
+
   html,
   body,
   #root {

@@ -26,8 +26,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const resolvedAppearance =
         appearance === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : appearance;
 
-      document.documentElement.classList.toggle('dark', resolvedAppearance === 'dark');
-      document.documentElement.style.colorScheme = resolvedAppearance;
+      const root = document.documentElement;
+      root.classList.add('theme-switching');
+      root.classList.toggle('dark', resolvedAppearance === 'dark');
+      root.style.colorScheme = resolvedAppearance;
+
+      window.requestAnimationFrame(() => {
+        root.classList.remove('theme-switching');
+      });
     };
 
     applyTheme();
