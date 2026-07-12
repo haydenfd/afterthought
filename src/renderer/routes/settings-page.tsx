@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { Monitor, Moon, Sun, Wifi } from 'lucide-react';
 
-import { SupermemoryStatus } from '@/components/supermemory-status';
+import { SupermemoryStatus } from '@/components/supermemory/supermemory-status';
 import { Button } from '@/components/ui/button';
 import {
   Card,

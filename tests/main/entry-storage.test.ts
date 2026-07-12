@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createEntryStorage } from './entry-storage';
+import { createEntryStorage } from '../../src/main/entry-storage';
 
 const temporaryDirectories: string[] = [];
 

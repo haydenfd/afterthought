@@ -6,7 +6,7 @@ import {
   groupEntriesByLocalDate,
 } from '@/lib/calendar';
 import { formatRouteDate } from '@/lib/dates';
-import type { JournalEntry } from '../../shared/journal-entry';
+import type { JournalEntry } from '../../../src/shared/journal-entry';
 
 describe('calendar utilities', () => {
   it('marks real local entry dates without marking future days', () => {

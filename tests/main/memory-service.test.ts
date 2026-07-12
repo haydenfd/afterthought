@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SupermemoryClient } from './supermemory-client';
-import { JOURNAL_MEMORY_CONTAINER } from './supermemory-client';
-import { createMemoryService } from './memory-service';
+import type { SupermemoryClient } from '../../src/main/supermemory-client';
+import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
+import { createMemoryService } from '../../src/main/memory-service';
 
 describe('memory service', () => {
   it('normalizes profile and paginated extracted memories', async () => {

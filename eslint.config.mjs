@@ -72,4 +72,26 @@ export default tseslint.config(
       },
     },
   },
+  {
+    files: ['tests/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.test.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        ...globals.es2022,
+      },
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );

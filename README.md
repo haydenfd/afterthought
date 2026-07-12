@@ -84,12 +84,17 @@ through a narrow, typed IPC surface:
   and `sandbox` are on and `nodeIntegration` is off, so the renderer cannot touch
   Node or Electron APIs directly — everything goes through this typed surface.
 - **Renderer** (`src/renderer/`) — a normal React 19 + React Router SPA. Routes
-  live in `src/renderer/routes/`, shared chrome (sidebar, collapsible shell) in
-  `src/renderer/components/`, and cross-page state (draft text, theme, Supermemory
-  status) in `src/renderer/state/` via React context.
+  live in `src/renderer/routes/`, and components are split by role:
+  `src/renderer/components/layout/` (app shell, sidebar), `.../components/supermemory/`
+  (Supermemory-specific UI), and `.../components/ui/` (shadcn/ui-style primitives).
+  Cross-page state (draft text, theme, Supermemory status) lives in
+  `src/renderer/state/` via React context.
 
 Shared types that cross the IPC boundary (`JournalEntry`, `MemoryProfile`, etc.)
 live in `src/shared/` so main and renderer never drift out of sync.
+
+Tests live outside `src/`, in `tests/`, mirroring the source tree (e.g.
+`src/main/entry-storage.ts` is covered by `tests/main/entry-storage.test.ts`).
 
 ### Data flow: writing an entry
 

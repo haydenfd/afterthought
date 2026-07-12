@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppProviders } from '@/app-providers';
-import { AppShell } from '@/components/app-shell';
+import { AppShell } from '@/components/layout/app-shell';
 import { CalendarPage } from '@/routes/calendar-page';
 import { EntryDetailPage } from '@/routes/entry-detail-page';
 import { ProfilePage } from '@/routes/profile-page';

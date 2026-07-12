@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EntryStorage } from './entry-storage';
-import { createJournalService } from './journal-service';
+import type { EntryStorage } from '../../src/main/entry-storage';
+import { createJournalService } from '../../src/main/journal-service';
 
 describe('journal service', () => {
   it('returns a saved entry without waiting for Supermemory ingestion', async () => {

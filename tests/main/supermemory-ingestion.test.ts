@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { JournalEntry } from '../shared/journal-entry';
-import type { SupermemoryClient } from './supermemory-client';
-import { JOURNAL_MEMORY_CONTAINER } from './supermemory-client';
-import { createJournalMemoryIngestor } from './supermemory-ingestion';
+import type { JournalEntry } from '../../src/shared/journal-entry';
+import type { SupermemoryClient } from '../../src/main/supermemory-client';
+import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
+import { createJournalMemoryIngestor } from '../../src/main/supermemory-ingestion';
 
 describe('Supermemory journal ingestion', () => {
   it('sends the canonical completed entry to the local journal container', async () => {

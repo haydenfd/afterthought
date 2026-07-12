@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 
 import { ReflectionsPage } from '@/routes/reflections-page';
-import type { MemoryRefreshResult } from '../../shared/memory';
+import type { MemoryRefreshResult } from '../../../src/shared/memory';
 
 describe('ReflectionsPage', () => {
   it('shows loading and then live profile and memory data', async () => {

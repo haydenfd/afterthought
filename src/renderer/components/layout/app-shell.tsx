@@ -2,7 +2,7 @@ import { PanelLeftOpen } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
-import { AppSidebar } from '@/components/app-sidebar';
+import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Button } from '@/components/ui/button';
 
 export function AppShell() {
