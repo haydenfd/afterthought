@@ -4,7 +4,7 @@ import { ReflectionsPage } from '@/routes/reflections-page';
 import type { MemoryRefreshResult } from '../../../src/shared/memory';
 
 describe('ReflectionsPage', () => {
-  it('shows loading and then live profile and memory data', async () => {
+  it('shows loading and then live profile data', async () => {
     const result: MemoryRefreshResult = {
       status: 'online',
       profile: {
@@ -27,10 +27,7 @@ describe('ReflectionsPage', () => {
     expect(
       await screen.findByText('Building has been energizing lately.'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('A named worry became more manageable.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('From July 10, 2026')).toBeInTheDocument();
+    expect(screen.getByText('Quiet focus matters.')).toBeInTheDocument();
   });
 
   it('shows an empty online state without treating it as an error', async () => {
@@ -49,7 +46,6 @@ describe('ReflectionsPage', () => {
         'Your profile will take shape as more entries are remembered.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/No extracted memories yet/)).toBeInTheDocument();
   });
 
   it('keeps a calm local-first view when Supermemory is offline', async () => {

@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -104,49 +103,26 @@ export function ReflectionsPage() {
           ) : null}
 
           <section aria-labelledby="profile-heading">
-            <h2 id="profile-heading" className="mb-3 text-sm font-medium">
+            <h2 id="profile-heading" className="text-sm font-medium">
               Living profile
             </h2>
+            <p className="mb-4 mt-1 text-xs text-muted-foreground">
+              A synthesized view of who you are, drawn from everything remembered so
+              far.
+            </p>
             {profileItems.length > 0 ? (
-              <div className="space-y-3">
-                {profileItems.map((item) => (
-                  <Card key={item}>
-                    <CardContent className="p-5 writing-text text-xl leading-8">
+              <Card className="bg-card">
+                <CardContent className="space-y-4 p-6">
+                  {profileItems.map((item) => (
+                    <p key={item} className="writing-text text-xl leading-8">
                       {item}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </p>
+                  ))}
+                </CardContent>
+              </Card>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Your profile will take shape as more entries are remembered.
-              </p>
-            )}
-          </section>
-
-          <section aria-labelledby="memories-heading">
-            <h2 id="memories-heading" className="mb-3 text-sm font-medium">
-              Extracted memories
-            </h2>
-            {memory.memories.length > 0 ? (
-              <div className="space-y-3">
-                {memory.memories.map((item) => (
-                  <Card key={item.id}>
-                    <CardContent className="p-5">
-                      <p className="writing-text text-xl leading-8">{item.text}</p>
-                      {formatSourceDate(item.sourceDate) ? (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          From {formatSourceDate(item.sourceDate)}
-                        </p>
-                      ) : null}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No extracted memories yet. Completed entries will appear here after
-                Supermemory processes them.
               </p>
             )}
           </section>
@@ -154,15 +130,6 @@ export function ReflectionsPage() {
       )}
     </section>
   );
-}
-
-function formatSourceDate(value: string | undefined): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : format(date, 'MMMM d, yyyy');
 }
 
 function offlineMemory(): MemoryRefreshResult {
