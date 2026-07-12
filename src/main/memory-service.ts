@@ -51,7 +51,7 @@ export function createMemoryService(
             : emptyProfile(),
         memories:
           memoriesResult.status === 'fulfilled'
-            ? memoriesResult.value.map(normalizeMemory).filter(isMemoryItem)
+            ? normalizeMemories(memoriesResult.value)
             : [],
         ...(partial
           ? {
@@ -152,8 +152,17 @@ function normalizeMemory(value: unknown): MemoryItem | null {
   };
 }
 
-function isMemoryItem(value: MemoryItem | null): value is MemoryItem {
-  return value !== null;
+function normalizeMemories(values: unknown[]): MemoryItem[] {
+  const memories: MemoryItem[] = [];
+
+  for (const value of values) {
+    const memory = normalizeMemory(value);
+    if (memory) {
+      memories.push(memory);
+    }
+  }
+
+  return memories;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

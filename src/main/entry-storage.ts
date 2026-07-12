@@ -70,23 +70,25 @@ export function createEntryStorage(entriesDirectory: string): EntryStorage {
     await ensureEntriesDirectory();
     const fileNames = await readdir(entriesDirectory);
     const entries = await Promise.all(
-      fileNames
-        .filter((fileName) => fileName.endsWith('.json'))
-        .map(async (fileName) => {
-          try {
-            const rawEntry = await readFile(join(entriesDirectory, fileName), 'utf8');
-            const entry = parseEntry(rawEntry);
+      fileNames.map(async (fileName) => {
+        if (!fileName.endsWith('.json')) {
+          return null;
+        }
 
-            if (!entry) {
-              console.warn(`Skipping malformed journal entry: ${fileName}`);
-            }
+        try {
+          const rawEntry = await readFile(join(entriesDirectory, fileName), 'utf8');
+          const entry = parseEntry(rawEntry);
 
-            return entry;
-          } catch (error) {
-            console.warn(`Could not read journal entry: ${fileName}`, error);
-            return null;
+          if (!entry) {
+            console.warn(`Skipping malformed journal entry: ${fileName}`);
           }
-        }),
+
+          return entry;
+        } catch (error) {
+          console.warn(`Could not read journal entry: ${fileName}`, error);
+          return null;
+        }
+      }),
     );
 
     return entries

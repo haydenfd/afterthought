@@ -12,8 +12,10 @@ export function createJournalMemoryIngestor(
 ): JournalMemoryIngestor {
   return {
     async ingestEntry(entry) {
-      const client = await clientPromise;
-      const { userName } = await preferences.getPreferences();
+      const [client, { userName }] = await Promise.all([
+        clientPromise,
+        preferences.getPreferences(),
+      ]);
 
       await client.documents.add({
         content: JSON.stringify(entry, null, 2),
