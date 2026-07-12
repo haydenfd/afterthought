@@ -48,7 +48,9 @@ describe('App', () => {
 
     expect(screen.getByRole('button', { name: 'Show sidebar' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'New Entry' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Primary' }),
+    ).not.toBeInTheDocument();
   });
 
   it('returns to Calendar and reloads entries after finishing a new entry', async () => {
@@ -88,7 +90,9 @@ describe('App', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
-    expect(await screen.findByText('Your entry has been saved.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Your reflection has been saved.'),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText('1 entry this month', {}, { timeout: 2_000 }),
     ).toBeInTheDocument();

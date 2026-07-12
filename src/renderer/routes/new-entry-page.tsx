@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, Check, LoaderCircle, MoveDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBeforeUnload, useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
+import type { OpeningQuestions, ReflectionProvenance } from '../../shared/reflection';
 
 const fallbackQuestions = [
   'What has been taking up more space in your mind than you expected?',
@@ -18,18 +19,29 @@ export function NewEntryPage() {
   const { draft, setDraft, isFinished, finishEntry, resetDraft } = useDraft();
   const navigate = useNavigate();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const deeperTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveInProgress = useRef(false);
+  const deeperRequestInProgress = useRef(false);
   const hasRequestedPrompt = useRef(false);
   const bypassPopGuard = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [aiQuestions, setAiQuestions] = useState<[string, string] | null>(null);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
+  const [deeperQuestion, setDeeperQuestion] = useState<string | null>(null);
+  const [deeperResponse, setDeeperResponse] = useState('');
+  const [deeperThemes, setDeeperThemes] = useState<string[]>([]);
+  const [deeperProvenance, setDeeperProvenance] = useState<ReflectionProvenance | null>(
+    null,
+  );
+  const [isGeneratingDeeper, setIsGeneratingDeeper] = useState(false);
+  const [deeperError, setDeeperError] = useState<string | null>(null);
   const [startedAt] = useState(() => new Date());
-  const wordCount = countWords(draft);
-  const questions = aiQuestions ?? fallbackQuestions;
+  const wordCount = countWords(`${draft} ${deeperResponse}`);
+  const questions: OpeningQuestions = aiQuestions ?? [...fallbackQuestions];
   const primaryQuestion = questions[0];
-  const hasUnsavedContent = draft.trim().length > 0;
+  const hasUnsavedContent = draft.trim().length > 0 || deeperResponse.trim().length > 0;
+  const canGoDeeper = countWords(draft) >= 5;
 
   useEffect(() => {
     if (hasRequestedPrompt.current) {
@@ -63,6 +75,10 @@ export function NewEntryPage() {
   useEffect(() => {
     autosizeTextarea(textareaRef.current);
   }, [draft]);
+
+  useEffect(() => {
+    autosizeTextarea(deeperTextareaRef.current);
+  }, [deeperResponse]);
 
   useBeforeUnload(
     useCallback(
@@ -136,10 +152,10 @@ export function NewEntryPage() {
             <Check className="h-5 w-5" aria-hidden="true" />
           </div>
           <p className="text-sm font-medium text-muted-foreground">
-            Entry complete for now
+            Reflection complete for now
           </p>
           <h2 className="mt-4 writing-text text-3xl leading-[1.25]">
-            Your entry has been saved.
+            Your reflection has been saved.
           </h2>
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             Returning you to Calendar now.
@@ -169,13 +185,60 @@ export function NewEntryPage() {
     setSaveError(null);
 
     try {
-      await window.afterthought.entries.create({ prompt: primaryQuestion, content });
+      await window.afterthought.entries.create({
+        prompt: primaryQuestion,
+        openingQuestions: questions,
+        content,
+        ...(deeperQuestion
+          ? {
+              deeperReflection: {
+                question: deeperQuestion,
+                ...(deeperResponse.trim() ? { response: deeperResponse.trim() } : {}),
+                ...(deeperProvenance ? { provenance: deeperProvenance } : {}),
+              },
+            }
+          : {}),
+        ...(deeperThemes.length > 0 ? { themes: deeperThemes } : {}),
+      });
       finishEntry();
     } catch {
       setSaveError('Your entry could not be saved. Please try again.');
     } finally {
       saveInProgress.current = false;
       setIsSaving(false);
+    }
+  }
+
+  async function handleGoDeeper(): Promise<void> {
+    if (
+      !canGoDeeper ||
+      deeperQuestion ||
+      isGeneratingDeeper ||
+      deeperRequestInProgress.current
+    ) {
+      return;
+    }
+
+    deeperRequestInProgress.current = true;
+    setIsGeneratingDeeper(true);
+    setDeeperError(null);
+
+    try {
+      const result = await window.afterthought.reflection.deeperQuestion({
+        openingQuestions: questions,
+        initialResponse: draft.trim(),
+      });
+      setDeeperQuestion(result.question);
+      setDeeperThemes(result.themes);
+      setDeeperProvenance(result.provenance);
+      window.requestAnimationFrame(() => deeperTextareaRef.current?.focus());
+    } catch {
+      deeperRequestInProgress.current = false;
+      setDeeperError(
+        'A deeper question is not available right now. You can still finish this reflection.',
+      );
+    } finally {
+      setIsGeneratingDeeper(false);
     }
   }
 
@@ -226,11 +289,12 @@ export function NewEntryPage() {
               <Textarea
                 ref={textareaRef}
                 value={draft}
+                readOnly={isGeneratingDeeper || deeperQuestion !== null}
                 onChange={(event) => {
                   setDraft(event.target.value);
                   autosizeTextarea(event.target);
                 }}
-                placeholder="Start with the thought that keeps returning."
+                placeholder="Begin wherever your attention is resting."
                 className={cn(
                   'writing-text min-h-[380px] flex-1 border-0 bg-transparent px-0 py-0 text-[22px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0',
                   'selection:bg-accent selection:text-accent-foreground',
@@ -238,21 +302,78 @@ export function NewEntryPage() {
                 aria-label="Journal entry"
               />
 
-              <footer className="mt-8 flex items-center justify-between gap-4 border-t border-border pt-5">
+              {isGeneratingDeeper ? (
+                <div className="mt-10 border-t border-border pt-10" aria-live="polite">
+                  <LoaderCircle
+                    className="h-4 w-4 animate-spin text-primary"
+                    aria-hidden="true"
+                  />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Looking for one useful place to go deeper…
+                  </p>
+                </div>
+              ) : null}
+
+              {deeperQuestion ? (
+                <section
+                  className="mt-10 border-t border-border pt-10"
+                  aria-labelledby="deeper-question"
+                >
+                  <p className="mb-4 text-sm text-muted-foreground">A little deeper</p>
+                  <h2
+                    id="deeper-question"
+                    className="max-w-4xl writing-text text-2xl leading-9"
+                  >
+                    {deeperQuestion}
+                  </h2>
+                  <Textarea
+                    ref={deeperTextareaRef}
+                    value={deeperResponse}
+                    onChange={(event) => {
+                      setDeeperResponse(event.target.value);
+                      autosizeTextarea(event.target);
+                    }}
+                    placeholder="Stay with this for as long as it is useful."
+                    className="mt-8 min-h-[220px] border-0 bg-transparent px-0 py-0 writing-text text-[21px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0"
+                    aria-label="Deeper reflection"
+                  />
+                </section>
+              ) : null}
+
+              <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
                 <p className="text-sm text-muted-foreground">
                   {wordCount === 0
                     ? 'No words yet'
                     : `${wordCount} ${wordCount === 1 ? 'word' : 'words'}`}
                 </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isSaving || !hasUnsavedContent}
-                  onClick={() => void handleFinishEntry()}
-                >
-                  {isSaving ? 'Finishing…' : 'Finish'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {!deeperQuestion ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={isSaving || isGeneratingDeeper || !canGoDeeper}
+                      onClick={() => void handleGoDeeper()}
+                    >
+                      <MoveDown className="h-4 w-4" aria-hidden="true" />
+                      {deeperError ? 'Try going deeper again' : 'Go deeper'}
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isSaving || isGeneratingDeeper || !draft.trim()}
+                    onClick={() => void handleFinishEntry()}
+                  >
+                    {isSaving ? 'Finishing…' : 'Finish'}
+                  </Button>
+                </div>
               </footer>
+              {deeperError ? (
+                <p className="mt-3 text-sm text-muted-foreground" role="status">
+                  {deeperError}
+                </p>
+              ) : null}
               {saveError ? (
                 <p className="mt-3 text-sm text-muted-foreground" role="alert">
                   {saveError}

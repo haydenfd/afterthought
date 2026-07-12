@@ -7,6 +7,7 @@ import type { JournalEntry } from '../shared/journal-entry';
 
 const recentEntryLimit = 4;
 const relevantMemoryLimit = 5;
+const minimumMemorySimilarity = 0.58;
 
 const systemPrompt = `You are a reflective presence for someone's private journal — like a thoughtful companion who has been quietly listening for weeks, not an AI assistant. Using the context below, write exactly two complementary opening questions for today's journal entry.
 
@@ -14,7 +15,9 @@ The first question must follow up on a recent experiment, habit, or unresolved t
 
 The second question must zoom out to a broader pattern, value, or emotional theme. It should offer a noticeably different lens from the first, not a rewording.
 
-Each question must be a single warm, curious sentence under 30 words. Guide writing rather than interrogating the person. Avoid yes/no phrasing, advice, diagnosis, clichés, generic therapy language, one-off logistics, and task-follow-up framing.
+Each question must be a single warm, curious sentence under 30 words. Guide writing rather than interrogating the person. Avoid yes/no phrasing, advice, diagnosis, clichés, generic therapy language, one-off logistics, and task-follow-up framing. Do not repeat a recently asked question.
+
+Retrieved memories are optional evidence, not facts you must mention. One match is not a pattern. Use recurrence language only when at least two distinct recent journal entries or verified source documents support it, and stay with recent writing when older context is weak.
 
 Respond with ONLY a JSON array of exactly two strings, nothing else:
 ["first question", "second question"]`;
@@ -61,44 +64,82 @@ export async function generateOpeningQuestions(
     return null;
   }
 
-  return parseBundle(response);
+  const verifiedSourceDocuments = new Set(
+    relevantMemories.flatMap((memory) => memory.sourceDocumentIds),
+  );
+  return parseBundle(
+    response,
+    recentEntries.length >= 2 || verifiedSourceDocuments.size >= 2,
+  );
 }
 
 interface RetrievedMemory {
   id: string;
   text: string;
+  similarity: number;
+  sourceDocumentIds: string[];
 }
 
 async function retrieveRelevantMemories(
   client: SupermemoryClient,
   recentEntries: JournalEntry[],
 ): Promise<RetrievedMemory[]> {
-  const query = recentEntries
-    .map((entry) => entry.content)
-    .join('\n\n')
-    .slice(0, 2000);
+  const queries = recentEntries
+    .slice(0, 2)
+    .map((entry) =>
+      [entry.themes?.join(', '), entry.content.slice(0, 1_400)]
+        .filter(Boolean)
+        .join(': '),
+    );
+  const responses = await Promise.allSettled(
+    queries.map((query) =>
+      client.search.memories({
+        q: query,
+        containerTag: JOURNAL_MEMORY_CONTAINER,
+        limit: relevantMemoryLimit,
+        rerank: true,
+        include: { documents: true },
+      }),
+    ),
+  );
+  const memories = new Map<string, RetrievedMemory>();
 
-  if (!query.trim()) {
-    return [];
+  for (const response of responses) {
+    if (response.status === 'rejected') {
+      continue;
+    }
+    for (const result of response.value.results) {
+      if (
+        typeof result.memory !== 'string' ||
+        !result.memory.trim() ||
+        !Number.isFinite(result.similarity) ||
+        result.similarity < minimumMemorySimilarity
+      ) {
+        continue;
+      }
+
+      const existing = memories.get(result.id);
+      const sourceDocumentIds = (result.documents ?? [])
+        .map((document) => document.id)
+        .filter(Boolean);
+      if (!existing || result.similarity > existing.similarity) {
+        memories.set(result.id, {
+          id: result.id,
+          text: result.memory.trim(),
+          similarity: result.similarity,
+          sourceDocumentIds,
+        });
+      } else if (sourceDocumentIds.length > 0) {
+        existing.sourceDocumentIds = [
+          ...new Set([...existing.sourceDocumentIds, ...sourceDocumentIds]),
+        ];
+      }
+    }
   }
 
-  try {
-    const response = await client.search.memories({
-      q: query,
-      containerTag: JOURNAL_MEMORY_CONTAINER,
-      limit: relevantMemoryLimit,
-      rerank: true,
-    });
-
-    return response.results
-      .filter(
-        (result): result is typeof result & { memory: string } =>
-          typeof result.memory === 'string' && result.memory.trim().length > 0,
-      )
-      .map((result) => ({ id: result.id, text: result.memory }));
-  } catch {
-    return [];
-  }
+  return [...memories.values()]
+    .sort((left, right) => right.similarity - left.similarity)
+    .slice(0, relevantMemoryLimit);
 }
 
 function extractProfile(
@@ -133,7 +174,7 @@ function buildUserMessage(
     'Their most recent journal entries, newest first (this is their canonical recent history):',
     ...recentEntries.map(
       (entry) =>
-        `- [${entry.createdAt.slice(0, 10)}] Prompt: "${entry.prompt}" — ${entry.content}`,
+        `- [${entry.createdAt.slice(0, 10)}] Asked: "${entry.openingQuestions?.join('" / "') ?? entry.prompt}" — ${entry.content}${entry.deeperReflection ? ` Deeper question: "${entry.deeperReflection.question}"` : ''}${entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : ''}`,
     ),
   );
 
@@ -148,14 +189,20 @@ function buildUserMessage(
   if (relevantMemories.length > 0) {
     parts.push(
       'Older memories that are semantically related to what they have been writing about recently (each has an id for citation):',
-      ...relevantMemories.map((memory) => `- [id: ${memory.id}] ${memory.text}`),
+      ...relevantMemories.map(
+        (memory) =>
+          `- [id: ${memory.id}; relevance: ${memory.similarity.toFixed(2)}] ${memory.text}`,
+      ),
     );
   }
 
   return parts.join('\n');
 }
 
-function parseBundle(response: string): OpeningQuestionsBundle | null {
+function parseBundle(
+  response: string,
+  canSupportRecurrence: boolean,
+): OpeningQuestionsBundle | null {
   const jsonText = extractJsonArray(response);
 
   if (!jsonText) {
@@ -165,7 +212,10 @@ function parseBundle(response: string): OpeningQuestionsBundle | null {
   try {
     const parsed: unknown = JSON.parse(jsonText);
 
-    if (!isOpeningQuestions(parsed)) {
+    if (
+      !isOpeningQuestions(parsed) ||
+      (!canSupportRecurrence && parsed.some(hasRecurrenceClaim))
+    ) {
       return null;
     }
 
@@ -176,6 +226,12 @@ function parseBundle(response: string): OpeningQuestionsBundle | null {
   } catch {
     return null;
   }
+}
+
+function hasRecurrenceClaim(question: string): boolean {
+  return /\b(a few times|several (?:times|entries)|recurr\w*|often|repeatedly|pattern)\b/i.test(
+    question,
+  );
 }
 
 function isOpeningQuestions(value: unknown): value is OpeningQuestions {
@@ -191,7 +247,9 @@ function isOpeningQuestions(value: unknown): value is OpeningQuestions {
     firstQuestion.trim().length === 0 ||
     secondQuestion.trim().length === 0 ||
     countWords(firstQuestion) > 30 ||
-    countWords(secondQuestion) > 30
+    countWords(secondQuestion) > 30 ||
+    !isSingleQuestion(firstQuestion) ||
+    !isSingleQuestion(secondQuestion)
   ) {
     return false;
   }
@@ -200,6 +258,11 @@ function isOpeningQuestions(value: unknown): value is OpeningQuestions {
     firstQuestion.trim().toLocaleLowerCase() !==
     secondQuestion.trim().toLocaleLowerCase()
   );
+}
+
+function isSingleQuestion(value: string): boolean {
+  const question = value.trim();
+  return question.endsWith('?') && !/[?!.]/.test(question.slice(0, -1));
 }
 
 function extractJsonArray(value: string): string | null {

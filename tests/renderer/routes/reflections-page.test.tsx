@@ -23,7 +23,7 @@ describe('ReflectionsPage', () => {
 
     render(<ReflectionsPage />);
 
-    expect(screen.getByText('Gathering your local memories…')).toBeInTheDocument();
+    expect(screen.getByText('Gathering remembered moments…')).toBeInTheDocument();
     expect(
       await screen.findByText('A named worry became more manageable.'),
     ).toBeInTheDocument();

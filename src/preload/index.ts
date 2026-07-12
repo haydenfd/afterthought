@@ -3,7 +3,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
-import type { OpeningQuestionsResult } from '../shared/reflection';
+import type {
+  DeeperQuestionInput,
+  DeeperQuestionResult,
+  OpeningQuestionsResult,
+} from '../shared/reflection';
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
 const afterthoughtApi = {
@@ -34,6 +38,8 @@ const afterthoughtApi = {
   reflection: {
     openingQuestions: (): Promise<OpeningQuestionsResult> =>
       ipcRenderer.invoke('reflection:opening-questions'),
+    deeperQuestion: (input: DeeperQuestionInput): Promise<DeeperQuestionResult> =>
+      ipcRenderer.invoke('reflection:deeper-question', input),
   },
 } as const;
 

@@ -24,6 +24,7 @@ export function createJournalMemoryIngestor(
         metadata: {
           source: 'afterthought-journal',
           sourceDate: entry.createdAt,
+          ...(entry.themes?.length ? { themes: entry.themes.join(', ') } : {}),
         },
         ...(userName ? { entityContext: `The user's name is ${userName}.` } : {}),
       });
@@ -38,16 +39,34 @@ export function createJournalMemoryIngestor(
  */
 function formatEntryForMemory(entry: JournalEntry): string {
   const date = entry.createdAt.slice(0, 10);
-  const lines = [`Journal entry — ${date}`];
+  const lines = [`Completed reflection — ${date}`];
 
   if (entry.title) {
     lines.push(entry.title);
   }
-  if (entry.prompt) {
-    lines.push(`Reflecting on: ${entry.prompt}`);
+  if (entry.openingQuestions) {
+    lines.push(
+      'App-generated opening prompts:',
+      ...entry.openingQuestions.map((question) => `- ${question}`),
+    );
+  } else if (entry.prompt) {
+    lines.push(`App-generated opening prompt: ${entry.prompt}`);
   }
 
-  lines.push('', entry.content);
+  lines.push('', 'User-authored initial reflection:', entry.content);
+
+  if (entry.deeperReflection) {
+    lines.push(
+      '',
+      entry.deeperReflection.response
+        ? 'App-generated deeper prompt:'
+        : 'App-generated deeper prompt (unanswered):',
+      entry.deeperReflection.question,
+      ...(entry.deeperReflection.response
+        ? ['', 'User-authored deeper reflection:', entry.deeperReflection.response]
+        : []),
+    );
+  }
 
   return lines.join('\n');
 }

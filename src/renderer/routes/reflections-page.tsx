@@ -66,8 +66,7 @@ export function ReflectionsPage() {
           <p className="text-sm text-muted-foreground">Reflections</p>
           <h1 className="mt-1 text-3xl font-medium">What has been remembered</h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-            The individual moments Supermemory Local drew out of your entries, newest
-            first.
+            Specific moments retained from your completed reflections, newest first.
           </p>
         </div>
         <Button
@@ -84,7 +83,7 @@ export function ReflectionsPage() {
       {isLoading ? (
         <Card aria-live="polite">
           <CardContent className="p-6 text-sm text-muted-foreground">
-            Gathering your local memories…
+            Gathering remembered moments…
           </CardContent>
         </Card>
       ) : memory.status === 'offline' ? (

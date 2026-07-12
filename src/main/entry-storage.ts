@@ -2,7 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
+import type {
+  CreateJournalEntryInput,
+  DeeperReflection,
+  JournalEntry,
+} from '../shared/journal-entry';
+import {
+  reflectionStrategies,
+  type OpeningQuestions,
+  type ReflectionProvenance,
+} from '../shared/reflection';
+import { normalizeThemes } from './reflection-themes';
 
 export interface EntryStorage {
   createEntry(input: CreateJournalEntryInput): Promise<JournalEntry>;
@@ -46,6 +56,9 @@ export function createEntryStorage(entriesDirectory: string): EntryStorage {
     const content = validateContent(input.content);
     const prompt = typeof input.prompt === 'string' ? input.prompt : '';
     const title = validateTitle(input.title);
+    const openingQuestions = validateOpeningQuestions(input.openingQuestions);
+    const deeperReflection = validateDeeperReflection(input.deeperReflection);
+    const themes = normalizeThemes(input.themes);
     const timestamp = new Date().toISOString();
     const entry: JournalEntry = {
       id: randomUUID(),
@@ -54,6 +67,9 @@ export function createEntryStorage(entriesDirectory: string): EntryStorage {
       prompt,
       content,
       ...(title === undefined ? {} : { title }),
+      ...(openingQuestions === undefined ? {} : { openingQuestions }),
+      ...(deeperReflection === undefined ? {} : { deeperReflection }),
+      ...(themes.length === 0 ? {} : { themes }),
     };
 
     await ensureEntriesDirectory();
@@ -119,6 +135,85 @@ function validateTitle(title: unknown): string | undefined {
   return title;
 }
 
+function validateOpeningQuestions(value: unknown): OpeningQuestions | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value) || value.length !== 2) {
+    throw new Error('Opening questions must contain exactly two questions.');
+  }
+
+  const questions: unknown[] = value;
+  const first = questions[0];
+  const second = questions[1];
+  if (
+    typeof first !== 'string' ||
+    !first.trim() ||
+    typeof second !== 'string' ||
+    !second.trim()
+  ) {
+    throw new Error('Opening questions must contain exactly two questions.');
+  }
+
+  return [first.trim(), second.trim()];
+}
+
+function validateDeeperReflection(value: unknown): DeeperReflection | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== 'object') {
+    throw new Error('Deeper reflection is invalid.');
+  }
+
+  const reflection = value as Record<string, unknown>;
+  if (typeof reflection.question !== 'string' || !reflection.question.trim()) {
+    throw new Error('Deeper reflection question cannot be empty.');
+  }
+
+  const response =
+    typeof reflection.response === 'string' && reflection.response.trim()
+      ? reflection.response.trim()
+      : undefined;
+  const provenance = validateProvenance(reflection.provenance);
+
+  return {
+    question: reflection.question.trim(),
+    ...(response === undefined ? {} : { response }),
+    ...(provenance === undefined ? {} : { provenance }),
+  };
+}
+
+function validateProvenance(value: unknown): ReflectionProvenance | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!value || typeof value !== 'object') {
+    throw new Error('Reflection provenance is invalid.');
+  }
+
+  const provenance = value as Record<string, unknown>;
+  const sourceMemoryIds: unknown[] = Array.isArray(provenance.sourceMemoryIds)
+    ? provenance.sourceMemoryIds
+    : [];
+  if (
+    typeof provenance.strategy !== 'string' ||
+    !reflectionStrategies.includes(
+      provenance.strategy as (typeof reflectionStrategies)[number],
+    ) ||
+    !Array.isArray(provenance.sourceMemoryIds) ||
+    sourceMemoryIds.some((id) => typeof id !== 'string')
+  ) {
+    throw new Error('Reflection provenance is invalid.');
+  }
+
+  return {
+    strategy: provenance.strategy as ReflectionProvenance['strategy'],
+    sourceMemoryIds: [...new Set(sourceMemoryIds as string[])],
+  };
+}
+
 function parseEntry(value: string): JournalEntry | null {
   try {
     const parsed: unknown = JSON.parse(value);
@@ -147,7 +242,52 @@ function isJournalEntry(value: unknown): value is JournalEntry {
     typeof entry.prompt === 'string' &&
     typeof entry.content === 'string' &&
     entry.content.trim().length > 0 &&
-    (entry.title === undefined || typeof entry.title === 'string')
+    (entry.title === undefined || typeof entry.title === 'string') &&
+    (entry.openingQuestions === undefined ||
+      validateStoredOpeningQuestions(entry.openingQuestions)) &&
+    (entry.deeperReflection === undefined ||
+      validateStoredDeeperReflection(entry.deeperReflection)) &&
+    (entry.themes === undefined ||
+      (Array.isArray(entry.themes) &&
+        entry.themes.every((theme) => typeof theme === 'string')))
+  );
+}
+
+function validateStoredOpeningQuestions(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((question) => typeof question === 'string' && question.trim())
+  );
+}
+
+function validateStoredDeeperReflection(value: unknown): boolean {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const reflection = value as Record<string, unknown>;
+  return (
+    typeof reflection.question === 'string' &&
+    reflection.question.trim().length > 0 &&
+    (reflection.response === undefined || typeof reflection.response === 'string') &&
+    (reflection.provenance === undefined || isStoredProvenance(reflection.provenance))
+  );
+}
+
+function isStoredProvenance(value: unknown): boolean {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const provenance = value as Record<string, unknown>;
+  return (
+    typeof provenance.strategy === 'string' &&
+    reflectionStrategies.includes(
+      provenance.strategy as (typeof reflectionStrategies)[number],
+    ) &&
+    Array.isArray(provenance.sourceMemoryIds) &&
+    provenance.sourceMemoryIds.every((id) => typeof id === 'string')
   );
 }
 

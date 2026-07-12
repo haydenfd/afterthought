@@ -114,9 +114,10 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Supermemory Client</CardTitle>
+            <CardTitle>Local memory</CardTitle>
             <CardDescription>
-              Saved locally; used to connect the next time the app starts.
+              This private service helps connect today’s reflection with what you have
+              shared before.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

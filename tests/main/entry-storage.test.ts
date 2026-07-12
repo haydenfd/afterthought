@@ -50,6 +50,64 @@ describe('entry storage', () => {
     ).rejects.toThrow('Journal entry content cannot be empty.');
   });
 
+  it('persists a complete guided session with themes and provenance', async () => {
+    const storage = createEntryStorage(await createTemporaryEntriesDirectory());
+
+    const entry = await storage.createEntry({
+      prompt: 'What changed in the routine?',
+      openingQuestions: [
+        'What changed in the routine?',
+        'What are you learning about your attention?',
+      ],
+      content: 'The routine helped until uncertainty took over.',
+      deeperReflection: {
+        question: 'What makes uncertainty so interrupting?',
+        response: 'It makes every smaller choice feel urgent.',
+        provenance: {
+          strategy: 'connect-behavior-and-effect',
+          sourceMemoryIds: ['memory-one', 'memory-one'],
+        },
+      },
+      themes: [' Attention ', 'uncertainty', 'attention'],
+    });
+
+    expect(await storage.getEntry(entry.id)).toMatchObject({
+      openingQuestions: [
+        'What changed in the routine?',
+        'What are you learning about your attention?',
+      ],
+      deeperReflection: {
+        question: 'What makes uncertainty so interrupting?',
+        response: 'It makes every smaller choice feel urgent.',
+        provenance: {
+          strategy: 'connect-behavior-and-effect',
+          sourceMemoryIds: ['memory-one'],
+        },
+      },
+      themes: ['attention', 'uncertainty'],
+    });
+  });
+
+  it('continues to read entries saved before guided sessions were added', async () => {
+    const entriesDirectory = await createTemporaryEntriesDirectory();
+    const storage = createEntryStorage(entriesDirectory);
+    await storage.listEntries();
+    const legacyEntry = {
+      id: 'f408164b-4355-4da3-9c64-944d8f7129fb',
+      createdAt: '2026-07-11T23:10:40.849Z',
+      updatedAt: '2026-07-11T23:10:40.849Z',
+      prompt: 'What stayed with you?',
+      content: 'A quiet moment.',
+    };
+    await writeFile(
+      join(entriesDirectory, `${legacyEntry.id}.json`),
+      JSON.stringify(legacyEntry),
+      'utf8',
+    );
+
+    await expect(storage.getEntry(legacyEntry.id)).resolves.toEqual(legacyEntry);
+  });
+
   it('lists entries newest first', async () => {
     const storage = createEntryStorage(await createTemporaryEntriesDirectory());
     vi.useFakeTimers();

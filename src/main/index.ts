@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
+import type { DeeperReflection } from '../shared/journal-entry';
+import type { DeeperQuestionInput, OpeningQuestions } from '../shared/reflection';
+import { generateDeeperQuestion } from './deeper-reflection';
 import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
 import { loadEnvFile } from './load-env';
@@ -118,11 +121,21 @@ void app.whenReady().then(async () => {
       throw new Error('Invalid journal entry.');
     }
 
-    const { prompt, content, title } = input as Record<string, unknown>;
+    const { prompt, content, title, openingQuestions, deeperReflection, themes } =
+      input as Record<string, unknown>;
     const entry = await journal.createEntry({
       prompt: typeof prompt === 'string' ? prompt : '',
       content: typeof content === 'string' ? content : '',
       ...(typeof title === 'string' ? { title } : {}),
+      ...(isOpeningQuestions(openingQuestions) ? { openingQuestions } : {}),
+      ...(isDeeperReflection(deeperReflection) ? { deeperReflection } : {}),
+      ...(Array.isArray(themes)
+        ? {
+            themes: themes.filter(
+              (theme): theme is string => typeof theme === 'string',
+            ),
+          }
+        : {}),
     });
     await openingQuestionsStorage.clear();
     return entry;
@@ -166,6 +179,22 @@ void app.whenReady().then(async () => {
     await openingQuestionsStorage.set(bundle);
     return { questions: bundle.questions, source: 'ai' as const };
   });
+  ipcMain.handle('reflection:deeper-question', (_event, input: unknown) => {
+    if (!input || typeof input !== 'object') {
+      throw new Error('Invalid reflection.');
+    }
+
+    const { openingQuestions, initialResponse } = input as Record<string, unknown>;
+    if (!isOpeningQuestions(openingQuestions) || typeof initialResponse !== 'string') {
+      throw new Error('Invalid reflection.');
+    }
+
+    const deeperInput: DeeperQuestionInput = {
+      openingQuestions,
+      initialResponse,
+    };
+    return generateDeeperQuestion(entryStorage, supermemoryClient, deeperInput);
+  });
   createMainWindow();
 
   app.on('activate', () => {
@@ -174,6 +203,24 @@ void app.whenReady().then(async () => {
     }
   });
 });
+
+function isOpeningQuestions(value: unknown): value is OpeningQuestions {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every(
+      (question) => typeof question === 'string' && question.trim().length > 0,
+    )
+  );
+}
+
+function isDeeperReflection(value: unknown): value is DeeperReflection {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as Record<string, unknown>).question === 'string'
+  );
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

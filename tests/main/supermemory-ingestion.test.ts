@@ -31,7 +31,8 @@ describe('Supermemory journal ingestion', () => {
     ).ingestEntry(entry);
 
     expect(add).toHaveBeenCalledWith({
-      content: 'Journal entry — 2026-07-11\nReflecting on: What stayed with you?\n\nA quiet moment.',
+      content:
+        'Completed reflection — 2026-07-11\nApp-generated opening prompt: What stayed with you?\n\nUser-authored initial reflection:\nA quiet moment.',
       containerTag: JOURNAL_MEMORY_CONTAINER,
       customId: entry.id,
       metadata: {
@@ -68,5 +69,64 @@ describe('Supermemory journal ingestion', () => {
         entityContext: "The user's name is Hayden.",
       }),
     );
+  });
+
+  it('ingests a complete guided session as prose with theme metadata', async () => {
+    const add = vi.fn().mockResolvedValue({ id: 'document-id' });
+    const guidedEntry: JournalEntry = {
+      ...entry,
+      openingQuestions: [
+        'What changed in the routine you were testing?',
+        'What are you learning about protecting your attention?',
+      ],
+      deeperReflection: {
+        question: 'What tends to pull your attention away first?',
+        response: 'Uncertainty makes small interruptions feel easier to choose.',
+        provenance: {
+          strategy: 'connect-behavior-and-effect',
+          sourceMemoryIds: ['memory-one'],
+        },
+      },
+      themes: ['attention', 'uncertainty'],
+    };
+
+    await createJournalMemoryIngestor(
+      Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
+      preferencesStub(),
+    ).ingestEntry(guidedEntry);
+
+    const request = add.mock.calls[0]![0] as {
+      content: string;
+      metadata: Record<string, string>;
+    };
+    expect(request.content).toContain(
+      'User-authored deeper reflection:\nUncertainty makes small interruptions feel easier to choose.',
+    );
+    expect(request.metadata.themes).toBe('attention, uncertainty');
+    expect(request.content).toContain(
+      'What are you learning about protecting your attention?',
+    );
+    expect(request.content).not.toContain('memory-one');
+    expect(request.content).not.toContain('connect-behavior-and-effect');
+  });
+
+  it('marks an unanswered deeper prompt as app-generated rather than user-authored', async () => {
+    const add = vi.fn().mockResolvedValue({ id: 'document-id' });
+
+    await createJournalMemoryIngestor(
+      Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
+      preferencesStub(),
+    ).ingestEntry({
+      ...entry,
+      deeperReflection: {
+        question: 'What might finishing this decision make real?',
+      },
+    });
+
+    const { content } = add.mock.calls[0]![0] as { content: string };
+    expect(content).toContain(
+      'App-generated deeper prompt (unanswered):\nWhat might finishing this decision make real?',
+    );
+    expect(content).not.toContain('User-authored deeper reflection:');
   });
 });

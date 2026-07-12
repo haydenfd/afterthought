@@ -70,12 +70,39 @@ export function EntryDetailPage() {
             <p className="text-sm text-muted-foreground">
               {format(new Date(entry.createdAt), 'h:mm a')}
             </p>
-            <p className="mt-4 writing-text text-xl italic leading-8 text-muted-foreground">
-              {entry.prompt}
-            </p>
+            <div className="mt-4 space-y-2">
+              {(entry.openingQuestions ?? (entry.prompt ? [entry.prompt] : [])).map(
+                (question) => (
+                  <p
+                    key={question}
+                    className="writing-text text-xl italic leading-8 text-muted-foreground"
+                  >
+                    {question}
+                  </p>
+                ),
+              )}
+            </div>
             <p className="mt-6 whitespace-pre-wrap writing-text text-xl leading-9 text-foreground">
               {entry.content}
             </p>
+            {entry.deeperReflection ? (
+              <section className="mt-9 border-l border-border pl-5">
+                <p className="text-sm text-muted-foreground">A little deeper</p>
+                <p className="mt-3 writing-text text-xl italic leading-8 text-muted-foreground">
+                  {entry.deeperReflection.question}
+                </p>
+                {entry.deeperReflection.response ? (
+                  <p className="mt-5 whitespace-pre-wrap writing-text text-xl leading-9 text-foreground">
+                    {entry.deeperReflection.response}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+            {entry.themes?.length ? (
+              <p className="mt-8 text-xs text-muted-foreground">
+                Touched on: {entry.themes.map(formatTheme).join(' · ')}
+              </p>
+            ) : null}
           </article>
         ))}
         {entriesForDate.length === 0 && !loadError ? (
@@ -96,4 +123,8 @@ export function EntryDetailPage() {
       </div>
     </section>
   );
+}
+
+function formatTheme(theme: string): string {
+  return theme.charAt(0).toLocaleUpperCase() + theme.slice(1);
 }

@@ -1,27 +1,29 @@
 # Afterthought
 
-Afterthought is an early desktop shell for a reflective journaling product. The
-eventual app will help people write daily entries, ask better follow-up
-questions over time, and build a living understanding of recurring themes,
-beliefs, goals, and changes.
+Afterthought is a local-first guided reflection app. It remembers completed
+reflections so it can offer more relevant questions and cautiously surface what
+appears to be recurring, steady, or changing over time.
 
 ## Current Scope
 
-This scaffold focuses on the initial desktop writing experience only:
+The current vertical slice includes:
 
 - Secure Electron app structure with main, preload, and React renderer processes
-- Calm journaling shell with Today, Calendar, Reflections, You, and Settings
+- Calm writing flow with two complementary opening questions
+- One optional, generated deeper question per reflection
 - Local JSON journal entry persistence in Electron user data
 - Best-effort ingestion of completed entries into Supermemory Local
 - Live local memory and profile inspection in Reflections
-- No AI generation, authentication, or database
+- Groq-backed structured question planning with offline fallbacks
+- Automatically inferred themes used for retrieval and repetition avoidance
+- No authentication, database, synchronization, or manual tagging
 
 ## Stack
 
 - Electron and electron-vite
 - React, TypeScript, Vite, React Router
 - Tailwind CSS with shadcn/ui-style local primitives
-- Lucide React, date-fns, Zod
+- Lucide React and date-fns
 - Official `supermemory` TypeScript SDK
 - Vitest, ESLint, Prettier
 
@@ -62,7 +64,7 @@ npx supermemory local --port 6767
 ```
 
 The app does not require Supermemory Local to be running. If the local service is
-unavailable, the Settings page and sidebar show an offline state without
+unavailable, the Settings page shows an offline state without
 blocking the journaling UI.
 
 Completed entries are saved to local JSON first, then sent asynchronously to the
@@ -80,9 +82,10 @@ through a narrow, typed IPC surface:
   except through the IPC handlers registered in `src/main/index.ts`.
 - **Preload script** (`src/preload/index.ts`) — the only bridge between the two.
   Uses `contextBridge.exposeInMainWorld` to expose a single `window.afterthought`
-  object with `entries`, `memory`, and `supermemory` namespaces. `contextIsolation`
-  and `sandbox` are on and `nodeIntegration` is off, so the renderer cannot touch
-  Node or Electron APIs directly — everything goes through this typed surface.
+  object with narrow `entries`, `memory`, `preferences`, `reflection`, and
+  `supermemory` namespaces. `contextIsolation` and `sandbox` are on and
+  `nodeIntegration` is off, so the renderer cannot touch Node or Electron APIs
+  directly — everything goes through this typed surface.
 - **Renderer** (`src/renderer/`) — a normal React 19 + React Router SPA. Routes
   live in `src/renderer/routes/`, and components are split by role:
   `src/renderer/components/layout/` (app shell, sidebar), `.../components/supermemory/`
@@ -98,16 +101,23 @@ Tests live outside `src/`, in `tests/`, mirroring the source tree (e.g.
 
 ### Data flow: writing an entry
 
-1. `TodayPage` collects prompt/content and calls `window.afterthought.entries.create(...)`.
-2. Preload forwards this over IPC to the `entries:create` handler in `src/main/index.ts`.
-3. `journal-service.ts` calls `entry-storage.ts`, which writes the entry as local
+1. `NewEntryPage` loads two cached or generated opening questions without reacting
+   to keystrokes. The person writes in one uninterrupted initial area.
+2. The person can finish immediately or select **Go deeper**. That explicit action
+   asks the main process for one follow-up; there is no conversational loop.
+3. The deeper-question service interprets the current writing, plans targeted
+   retrieval, filters weak Supermemory matches, and asks Groq for one structured
+   question. It can ignore memory entirely and has a local fallback.
+4. `NewEntryPage` calls `window.afterthought.entries.create(...)` with the complete
+   guided session.
+5. Preload forwards this over IPC to the `entries:create` handler in `src/main/index.ts`.
+6. `journal-service.ts` calls `entry-storage.ts`, which writes the entry as local
    JSON under Electron's `userData/entries` directory. This save is synchronous
    with the UI response — it's the durable source of truth.
-4. `journal-service.ts` then fires an **async, best-effort** call into
-   `supermemory-ingestion.ts`, which pushes the entry's content into Supermemory
-   Local under the `afterthought:user:local` container tag. Failures here are
-   caught and logged only — they never block or fail the save (see the
-   `.catch()` in `journal-service.ts`).
+7. `journal-service.ts` then fires an **async, best-effort** call into
+   `supermemory-ingestion.ts`, which sends clean prose containing the opening
+   context, initial writing, and optional deeper exchange. Failures never block
+   or fail the local save.
 
 ### Data flow: reading memories back
 
@@ -129,24 +139,23 @@ a typed offline/error state rather than throw.
 
 ## Routes
 
-- `/today`: daily writing screen
+- `/entry/new`: focused guided reflection screen
 - `/calendar`: month calendar of saved entries
 - `/calendar/:date`: saved entry detail view
-- `/reflections`: live local memories with clearly labeled examples
-- `/profile`: demonstration living profile
+- `/reflections`: concrete remembered moments from completed reflections
+- `/profile`: cautious synthesized profile from the local memory service
 - `/settings`: appearance and Supermemory Local settings
-- `/`: redirects to `/today`
+- `/`: redirects to `/calendar`
 
 ## Current Limitations
 
 - Journal entries are local JSON files only; they are not encrypted or synced
-- The You profile content remains demonstration data
 - Supermemory processing can take a short time after an entry is saved
 - No markdown, rich text, backend server, database, authentication, or syncing
 
 ## Planned Next Steps
 
 - Add local encrypted journal storage
-- Retrieve relevant prior memories for follow-up prompts
-- Replace demonstration profile and reflection data with accumulated memory
+- Improve recovery/retry visibility for best-effort memory ingestion
+- Add stronger source-date provenance as Supermemory exposes it in search results
 - Add import/export and backup flows

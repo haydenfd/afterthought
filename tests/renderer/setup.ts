@@ -43,6 +43,15 @@ Object.defineProperty(window, 'afterthought', {
       openingQuestions: vi
         .fn()
         .mockResolvedValue({ questions: null, source: 'fallback' }),
+      deeperQuestion: vi.fn().mockResolvedValue({
+        question: 'What feels most important to understand about what you just wrote?',
+        themes: [],
+        source: 'fallback',
+        provenance: {
+          strategy: 'deepen-current-thought',
+          sourceMemoryIds: [],
+        },
+      }),
     },
   },
 });

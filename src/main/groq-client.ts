@@ -16,7 +16,11 @@ interface GroqChatCompletionResponse {
 
 export async function callGroq(
   messages: GroqMessage[],
-  options: { jsonMode?: boolean } = {},
+  options: {
+    jsonMode?: boolean;
+    temperature?: number;
+    maxTokens?: number;
+  } = {},
 ): Promise<string | null> {
   const apiKey = process.env.GROQ_API_KEY;
 
@@ -34,8 +38,8 @@ export async function callGroq(
       body: JSON.stringify({
         model: GROQ_MODEL,
         messages,
-        temperature: 0.8,
-        max_tokens: 400,
+        temperature: options.temperature ?? 0.8,
+        max_tokens: options.maxTokens ?? 400,
         ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
       signal: AbortSignal.timeout(10_000),

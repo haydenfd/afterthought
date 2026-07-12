@@ -3,7 +3,11 @@
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
-import type { OpeningQuestionsResult } from '../shared/reflection';
+import type {
+  DeeperQuestionInput,
+  DeeperQuestionResult,
+  OpeningQuestionsResult,
+} from '../shared/reflection';
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
 declare global {
@@ -31,6 +35,7 @@ declare global {
       };
       reflection: {
         openingQuestions: () => Promise<OpeningQuestionsResult>;
+        deeperQuestion: (input: DeeperQuestionInput) => Promise<DeeperQuestionResult>;
       };
     };
   }

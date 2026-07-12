@@ -9,6 +9,7 @@ export interface SupermemorySearchResult {
   id: string;
   memory?: string;
   similarity: number;
+  documents?: Array<{ id: string }>;
 }
 
 export interface SupermemorySearchResponse {
@@ -17,24 +18,25 @@ export interface SupermemorySearchResponse {
 
 export interface SupermemoryClient {
   documents: {
-    add(input: {
+    add: (input: {
       content: string;
       containerTag: string;
       customId: string;
       metadata: Record<string, string>;
       entityContext?: string;
-    }): Promise<unknown>;
+    }) => Promise<unknown>;
   };
-  profile(input: { containerTag: string }): Promise<unknown>;
+  profile: (input: { containerTag: string }) => Promise<unknown>;
   search: {
-    memories(input: {
+    memories: (input: {
       q: string;
       containerTag: string;
       limit?: number;
       rerank?: boolean;
-    }): Promise<SupermemorySearchResponse>;
+      include?: { documents?: boolean };
+    }) => Promise<SupermemorySearchResponse>;
   };
-  post<T>(path: string, options: { body: Record<string, unknown> }): Promise<T>;
+  post: <T>(path: string, options: { body: Record<string, unknown> }) => Promise<T>;
 }
 
 export function createSupermemoryClient(

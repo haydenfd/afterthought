@@ -63,8 +63,8 @@ export function ProfilePage() {
           <p className="text-sm text-muted-foreground">You</p>
           <h1 className="mt-1 text-3xl font-medium">Who you seem to be becoming</h1>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Drawn only from what you have written, remembered on this machine. Nothing
-            here was authored for you.
+            A cautious synthesis of what recurs, what holds steady, and what may be
+            changing in the reflections saved on this machine.
           </p>
         </div>
         <Button
@@ -103,7 +103,10 @@ export function ProfilePage() {
               </h2>
               <div className="mt-4 space-y-4">
                 {shifting.map((line) => (
-                  <p key={line} className="writing-text text-xl leading-8 text-foreground">
+                  <p
+                    key={line}
+                    className="writing-text text-xl leading-8 text-foreground"
+                  >
                     {line}
                   </p>
                 ))}
@@ -134,8 +137,9 @@ export function ProfilePage() {
         </div>
       ) : (
         <p className="max-w-xl writing-text text-xl leading-8 text-muted-foreground">
-          This page is quiet for now. As you keep writing, a portrait of who you are will
-          take shape here — recurring themes, what is changing, what stays constant.
+          This page is quiet for now. As you keep writing, a portrait of who you are
+          will take shape here — recurring themes, what is changing, what stays
+          constant.
         </p>
       )}
     </section>
