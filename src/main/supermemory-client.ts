@@ -1,4 +1,4 @@
-import Supermemory from 'supermemory';
+import { Supermemory } from 'supermemory';
 
 export const SUPERMEMORY_LOCAL_URL = 'http://localhost:6767';
 export const JOURNAL_MEMORY_CONTAINER = 'afterthought:user:local';
