@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Feather, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { MemoryRefreshResult } from '../../shared/memory';
-
-const exampleReflections = [
-  'You have mentioned uncertainty about your next career step several times this month.',
-  'Your entries sound more energized when you discuss building than when you discuss applying.',
-];
 
 const emptyMemory: MemoryRefreshResult = {
   status: 'online',
@@ -157,28 +152,6 @@ export function ReflectionsPage() {
           </section>
         </div>
       )}
-
-      <section
-        className="mt-12 border-t border-border pt-8"
-        aria-labelledby="examples-heading"
-      >
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Examples only
-        </p>
-        <h2 id="examples-heading" className="mt-2 text-xl font-medium">
-          What future reflections might feel like
-        </h2>
-        <div className="mt-4 space-y-3">
-          {exampleReflections.map((reflection) => (
-            <Card key={reflection} className="border-dashed bg-background/55">
-              <CardContent className="flex gap-4 p-5">
-                <Feather className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                <p className="writing-text text-lg leading-7">{reflection}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
     </section>
   );
 }

@@ -31,7 +31,6 @@ describe('ReflectionsPage', () => {
       screen.getByText('A named worry became more manageable.'),
     ).toBeInTheDocument();
     expect(screen.getByText('From July 10, 2026')).toBeInTheDocument();
-    expect(screen.getByText('Examples only')).toBeInTheDocument();
   });
 
   it('shows an empty online state without treating it as an error', async () => {
@@ -64,7 +63,6 @@ describe('ReflectionsPage', () => {
         'Supermemory Local is unavailable. Your journal remains saved locally.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('Examples only')).toBeInTheDocument();
   });
 });
 
