@@ -1,4 +1,4 @@
-import { PanelLeftOpen } from 'lucide-react';
+import { ChevronsRight } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 
@@ -13,7 +13,7 @@ export function AppShell() {
       {isSidebarOpen ? (
         <AppSidebar onCollapse={() => setIsSidebarOpen(false)} />
       ) : (
-        <aside className="flex w-12 shrink-0 border-r border-border bg-card/55 px-1.5 py-4">
+        <aside className="animate-rail-in flex w-12 shrink-0 border-r border-border bg-card/55 px-1.5 py-4">
           <Button
             type="button"
             variant="ghost"
@@ -21,12 +21,13 @@ export function AppShell() {
             aria-label="Show sidebar"
             title="Show sidebar"
             onClick={() => setIsSidebarOpen(true)}
+            className="transition-transform duration-150 ease-out-quart hover:scale-105 active:scale-95"
           >
-            <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+            <ChevronsRight className="h-4 w-4" aria-hidden="true" />
           </Button>
         </aside>
       )}
-      <main className="min-w-0 flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto duration-200 animate-in fade-in">
         <Outlet />
       </main>
     </div>
