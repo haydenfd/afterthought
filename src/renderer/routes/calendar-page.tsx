@@ -1,7 +1,7 @@
 import { addMonths, format, startOfMonth } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,7 @@ const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function CalendarPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const today = useMemo(() => new Date(), []);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(today));
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -57,7 +58,7 @@ export function CalendarPage() {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [location.key]);
 
   return (
     <section className="mx-auto min-h-screen max-w-5xl px-10 py-10">
@@ -75,6 +76,10 @@ export function CalendarPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button type="button" onClick={() => void navigate('/entry/new')}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New Entry
+          </Button>
           <Button
             type="button"
             variant="outline"

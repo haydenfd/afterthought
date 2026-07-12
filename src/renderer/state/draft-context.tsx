@@ -5,7 +5,7 @@ interface DraftState {
   setDraft: (value: string) => void;
   isFinished: boolean;
   finishEntry: () => void;
-  returnToEditing: () => void;
+  resetDraft: () => void;
 }
 
 const DraftContext = createContext<DraftState | null>(null);
@@ -20,7 +20,10 @@ export function DraftProvider({ children }: { children: ReactNode }) {
       setDraft,
       isFinished,
       finishEntry: () => setIsFinished(true),
-      returnToEditing: () => setIsFinished(false),
+      resetDraft: () => {
+        setDraft('');
+        setIsFinished(false);
+      },
     }),
     [draft, isFinished],
   );

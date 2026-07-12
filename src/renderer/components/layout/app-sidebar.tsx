@@ -3,18 +3,17 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Feather,
-  Home,
   NotebookPen,
+  Plus,
   Settings,
   UserRound,
 } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: 'Today', to: '/today', icon: Home },
   { label: 'Calendar', to: '/calendar', icon: CalendarDays },
   { label: 'Reflections', to: '/reflections', icon: Feather },
   { label: 'You', to: '/profile', icon: UserRound },
@@ -74,6 +73,27 @@ export function AppSidebar({
           )}
         </Button>
       </div>
+
+      <Button
+        asChild
+        className={cn(
+          'mb-5 w-full justify-start gap-2.5 bg-primary text-primary-foreground hover:bg-primary/90',
+          !isOpen && 'w-9 px-0',
+        )}
+        size={isOpen ? 'default' : 'icon'}
+      >
+        <Link to="/entry/new" aria-label="New Entry" title="New Entry">
+          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span
+            className={cn(
+              'truncate transition-opacity duration-150 ease-out-quart',
+              isOpen ? 'opacity-100' : 'w-0 opacity-0',
+            )}
+          >
+            New Entry
+          </span>
+        </Link>
+      </Button>
 
       <nav className="space-y-1" aria-label="Primary">
         {navItems.map((item) => (

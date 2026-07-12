@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { formatFullDate, formatRouteDate, parseRouteDate } from '@/lib/dates';
@@ -10,6 +10,7 @@ import type { JournalEntry } from '../../shared/journal-entry';
 
 export function EntryDetailPage() {
   const { date } = useParams();
+  const navigate = useNavigate();
   const parsedDate = parseRouteDate(date);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loadError, setLoadError] = useState(false);
@@ -77,7 +78,12 @@ export function EntryDetailPage() {
           </article>
         ))}
         {entriesForDate.length === 0 && !loadError ? (
-          <p className="text-sm text-muted-foreground">No entry on this day.</p>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">No entry on this day.</p>
+            <Button type="button" onClick={() => void navigate('/entry/new')}>
+              Start a new entry
+            </Button>
+          </div>
         ) : null}
         {loadError ? (
           <p className="text-sm text-muted-foreground">
