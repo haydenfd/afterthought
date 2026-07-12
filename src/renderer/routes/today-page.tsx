@@ -7,7 +7,8 @@ import { formatFullDate, formatWeekday } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
 
-const prompt = 'What has been taking up more space in your mind than you expected?';
+const fallbackPrompt =
+  'What has been taking up more space in your mind than you expected?';
 
 export function TodayPage() {
   const { draft, setDraft, isFinished, finishEntry, returnToEditing } = useDraft();
@@ -15,8 +16,35 @@ export function TodayPage() {
   const saveInProgress = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState<string | null>(null);
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
   const today = new Date();
   const wordCount = countWords(draft);
+  const prompt = aiPrompt ?? fallbackPrompt;
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.reflection
+      .openingQuestions()
+      .then((result) => {
+        if (isCurrent && result.primaryQuestion) {
+          setAiPrompt(result.primaryQuestion);
+        }
+      })
+      .catch(() => {
+        // Fall back to the static prompt below; nothing to set here.
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoadingPrompt(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   useEffect(() => {
     autosizeTextarea(textareaRef.current);
@@ -99,7 +127,12 @@ export function TodayPage() {
         <p className="mb-5 max-w-3xl text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Today&apos;s prompt
         </p>
-        <h2 className="mb-8 max-w-4xl writing-text text-4xl leading-[1.22]">
+        <h2
+          className={cn(
+            'mb-8 max-w-4xl writing-text text-4xl leading-[1.22] transition-opacity duration-200',
+            isLoadingPrompt && 'opacity-60',
+          )}
+        >
           {prompt}
         </h2>
 

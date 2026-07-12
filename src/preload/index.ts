@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
+import type { OpeningQuestionsResult } from '../shared/reflection';
 
 const afterthoughtApi = {
   platform: process.platform,
@@ -28,6 +29,10 @@ const afterthoughtApi = {
     get: (): Promise<Preferences> => ipcRenderer.invoke('preferences:get'),
     set: (update: Partial<Preferences>): Promise<Preferences> =>
       ipcRenderer.invoke('preferences:set', update),
+  },
+  reflection: {
+    openingQuestions: (): Promise<OpeningQuestionsResult> =>
+      ipcRenderer.invoke('reflection:opening-questions'),
   },
 } as const;
 

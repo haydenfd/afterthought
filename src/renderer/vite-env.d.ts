@@ -3,6 +3,7 @@
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
+import type { OpeningQuestionsResult } from '../shared/reflection';
 
 declare global {
   interface Window {
@@ -30,6 +31,9 @@ declare global {
       preferences: {
         get: () => Promise<Preferences>;
         set: (update: Partial<Preferences>) => Promise<Preferences>;
+      };
+      reflection: {
+        openingQuestions: () => Promise<OpeningQuestionsResult>;
       };
     };
   }
