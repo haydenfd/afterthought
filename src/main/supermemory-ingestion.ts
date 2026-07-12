@@ -18,7 +18,7 @@ export function createJournalMemoryIngestor(
       ]);
 
       await client.documents.add({
-        content: JSON.stringify(entry, null, 2),
+        content: formatEntryForMemory(entry),
         containerTag: JOURNAL_MEMORY_CONTAINER,
         customId: entry.id,
         metadata: {
@@ -29,4 +29,25 @@ export function createJournalMemoryIngestor(
       });
     },
   };
+}
+
+/**
+ * Supermemory extracts atomic memories from raw text, so we send the entry as
+ * clean prose — a dated journal entry — rather than a JSON blob full of ids and
+ * timestamps for the model to wade past. The local JSON file stays canonical.
+ */
+function formatEntryForMemory(entry: JournalEntry): string {
+  const date = entry.createdAt.slice(0, 10);
+  const lines = [`Journal entry — ${date}`];
+
+  if (entry.title) {
+    lines.push(entry.title);
+  }
+  if (entry.prompt) {
+    lines.push(`Reflecting on: ${entry.prompt}`);
+  }
+
+  lines.push('', entry.content);
+
+  return lines.join('\n');
 }
