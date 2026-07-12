@@ -2,11 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 
-import type {
-  OpeningCallback,
-  OpeningQuestions,
-  OpeningQuestionsBundle,
-} from '../shared/reflection';
+import type { OpeningQuestions, OpeningQuestionsBundle } from '../shared/reflection';
 
 export interface OpeningQuestionsStorage {
   get(): Promise<OpeningQuestionsBundle | null>;
@@ -53,12 +49,7 @@ function parseBundle(value: unknown): OpeningQuestionsBundle | null {
 
   const record = value as Record<string, unknown>;
   if (isOpeningQuestions(record.questions) && typeof record.generatedAt === 'string') {
-    const callback = parseCallback(record.callback);
-    return {
-      questions: record.questions,
-      ...(callback ? { callback } : {}),
-      generatedAt: record.generatedAt,
-    };
+    return { questions: record.questions, generatedAt: record.generatedAt };
   }
 
   if (
@@ -70,24 +61,6 @@ function parseBundle(value: unknown): OpeningQuestionsBundle | null {
       questions: [record.primaryQuestion, record.alternateQuestion],
       generatedAt: record.generatedAt,
     };
-  }
-
-  return null;
-}
-
-function parseCallback(value: unknown): OpeningCallback | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.label === 'string' &&
-    record.label.trim().length > 0 &&
-    typeof record.question === 'string' &&
-    record.question.trim().length > 0
-  ) {
-    return { label: record.label, question: record.question };
   }
 
   return null;

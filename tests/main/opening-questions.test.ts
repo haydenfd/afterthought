@@ -60,16 +60,10 @@ function clientWithMemory(): SupermemoryClient {
   };
 }
 
-const validGroqResponse = JSON.stringify({
-  callback: {
-    label: 'A few days ago',
-    question: 'How has the phone cutoff been landing since you started it?',
-  },
-  questions: [
-    'What changed when you kept the phone cutoff last night?',
-    'What are you learning about protecting your mornings?',
-  ],
-});
+const validGroqResponse = JSON.stringify([
+  'What changed when you kept the phone cutoff last night?',
+  'What are you learning about protecting your mornings?',
+]);
 
 describe('generateOpeningQuestions', () => {
   it('returns null without calling Groq when there are no journal entries yet', async () => {
@@ -99,51 +93,8 @@ describe('generateOpeningQuestions', () => {
         'What changed when you kept the phone cutoff last night?',
         'What are you learning about protecting your mornings?',
       ],
-      callback: {
-        label: 'A few days ago',
-        question: 'How has the phone cutoff been landing since you started it?',
-      },
     });
     expect(typeof result?.generatedAt).toBe('string');
-  });
-
-  it('omits the callback when the model declines to surface an open loop', async () => {
-    vi.mocked(callGroq).mockResolvedValue(
-      JSON.stringify({
-        callback: null,
-        questions: [
-          'What changed when you kept the phone cutoff last night?',
-          'What are you learning about protecting your mornings?',
-        ],
-      }),
-    );
-
-    const result = await generateOpeningQuestions(
-      entryStorageStub(),
-      Promise.resolve(clientWithMemory()),
-      preferencesStub(),
-    );
-
-    expect(result?.questions).toHaveLength(2);
-    expect(result?.callback).toBeUndefined();
-  });
-
-  it('still yields questions when the model returns a bare two-question array', async () => {
-    vi.mocked(callGroq).mockResolvedValue(
-      JSON.stringify([
-        'What changed when you kept the phone cutoff last night?',
-        'What are you learning about protecting your mornings?',
-      ]),
-    );
-
-    const result = await generateOpeningQuestions(
-      entryStorageStub(),
-      Promise.resolve(clientWithMemory()),
-      preferencesStub(),
-    );
-
-    expect(result?.questions).toHaveLength(2);
-    expect(result?.callback).toBeUndefined();
   });
 
   it('uses recent entries as primary context and asks for a two-question array', async () => {
@@ -155,14 +106,14 @@ describe('generateOpeningQuestions', () => {
       preferencesStub(),
     );
 
-    expect(callGroq).toHaveBeenCalledWith(expect.any(Array), { jsonMode: true });
+    expect(callGroq).toHaveBeenCalledWith(expect.any(Array));
     const [messages] = vi.mocked(callGroq).mock.calls[0]!;
     const userMessage = messages.find((message) => message.role === 'user')?.content;
     const systemMessage = messages.find(
       (message) => message.role === 'system',
     )?.content;
     expect(userMessage).toContain('Kept up the phone cutoff again last night.');
-    expect(systemMessage).toContain('Respond with ONLY a JSON object');
+    expect(systemMessage).toContain('JSON array of exactly two strings');
   });
 
   it('asks for reflective observations instead of yes-or-no experiment check-ins', async () => {
