@@ -1,5 +1,5 @@
 import { Check, PenLine } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,11 +8,13 @@ import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
 
 const prompt = 'What has been taking up more space in your mind than you expected?';
-const followUpQuestion = 'What part of this feels unresolved?';
 
 export function TodayPage() {
   const { draft, setDraft, isFinished, finishEntry, returnToEditing } = useDraft();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const saveInProgress = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const today = new Date();
   const wordCount = countWords(draft);
 
@@ -38,11 +40,10 @@ export function TodayPage() {
             Entry complete for now
           </p>
           <h2 className="mt-4 writing-text text-3xl leading-[1.25]">
-            {followUpQuestion}
+            Your entry has been saved.
           </h2>
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            This is a placeholder follow-up. Later, Afterthought will draw from your
-            journal memory before asking.
+            You can return to it whenever you&apos;re ready.
           </p>
           <Button
             className="mt-8"
@@ -56,6 +57,28 @@ export function TodayPage() {
         </div>
       </section>
     );
+  }
+
+  async function handleFinishEntry(): Promise<void> {
+    const content = draft.trim();
+
+    if (!content || saveInProgress.current) {
+      return;
+    }
+
+    saveInProgress.current = true;
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await window.afterthought.entries.create({ prompt, content });
+      finishEntry();
+    } catch {
+      setSaveError('Your entry could not be saved. Please try again.');
+    } finally {
+      saveInProgress.current = false;
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -101,10 +124,19 @@ export function TodayPage() {
               ? 'No words yet'
               : `${wordCount} ${wordCount === 1 ? 'word' : 'words'}`}
           </p>
-          <Button type="button" onClick={finishEntry}>
-            Finish entry
+          <Button
+            type="button"
+            disabled={isSaving}
+            onClick={() => void handleFinishEntry()}
+          >
+            {isSaving ? 'Saving entry…' : 'Finish entry'}
           </Button>
         </footer>
+        {saveError ? (
+          <p className="mt-3 text-sm text-muted-foreground" role="alert">
+            {saveError}
+          </p>
+        ) : null}
       </div>
     </section>
   );

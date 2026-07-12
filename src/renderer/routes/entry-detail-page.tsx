@@ -1,17 +1,48 @@
 import { ArrowLeft } from 'lucide-react';
+import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { formatFullDate, parseRouteDate } from '@/lib/dates';
-
-const originalPrompt =
-  'What has been taking up more space in your mind than you expected?';
-const followUpQuestion = 'What part of this feels unresolved?';
+import { formatFullDate, formatRouteDate, parseRouteDate } from '@/lib/dates';
+import { groupEntriesByLocalDate } from '@/lib/calendar';
+import type { JournalEntry } from '../../shared/journal-entry';
 
 export function EntryDetailPage() {
   const { date } = useParams();
   const parsedDate = parseRouteDate(date);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const entriesForDate = useMemo(() => {
+    if (!parsedDate) {
+      return [];
+    }
+
+    return (
+      groupEntriesByLocalDate(entries).get(formatRouteDate(parsedDate)) ?? []
+    ).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }, [entries, parsedDate]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.entries
+      .list()
+      .then((loadedEntries) => {
+        if (isCurrent) {
+          setEntries(loadedEntries);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setLoadError(true);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
@@ -23,43 +54,36 @@ export function EntryDetailPage() {
       </Button>
 
       <header className="mt-8">
-        <p className="text-sm text-muted-foreground">Sample journal entry</p>
-        <h1 className="mt-1 text-3xl font-medium">
+        <h1 className="text-3xl font-medium">
           {parsedDate ? formatFullDate(parsedDate) : 'Unknown date'}
         </h1>
       </header>
 
-      <div className="mt-8 space-y-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Original prompt
+      <div className="mt-8">
+        {entriesForDate.map((entry, index) => (
+          <article
+            key={entry.id}
+            className={index > 0 ? 'mt-10 border-t border-border pt-10' : undefined}
+          >
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(entry.createdAt), 'h:mm a')}
             </p>
-            <p className="mt-3 writing-text text-2xl leading-9">{originalPrompt}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Placeholder journal content
+            <p className="mt-4 writing-text text-xl italic leading-8 text-muted-foreground">
+              {entry.prompt}
             </p>
-            <p className="mt-4 writing-text text-xl leading-9 text-foreground/90">
-              I kept circling back to the same decision today. It was not urgent,
-              exactly, but it kept shaping the background of everything else I tried to
-              do. Naming it made it feel less abstract.
+            <p className="mt-6 whitespace-pre-wrap writing-text text-xl leading-9 text-foreground">
+              {entry.content}
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Placeholder follow-up
-            </p>
-            <p className="mt-3 writing-text text-2xl leading-9">{followUpQuestion}</p>
-          </CardContent>
-        </Card>
+          </article>
+        ))}
+        {entriesForDate.length === 0 && !loadError ? (
+          <p className="text-sm text-muted-foreground">No entry on this day.</p>
+        ) : null}
+        {loadError ? (
+          <p className="text-sm text-muted-foreground">
+            Entries could not be loaded right now.
+          </p>
+        ) : null}
       </div>
     </section>
   );

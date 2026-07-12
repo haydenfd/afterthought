@@ -11,9 +11,9 @@ This scaffold focuses on the initial desktop writing experience only:
 
 - Secure Electron app structure with main, preload, and React renderer processes
 - Calm journaling shell with Today, Calendar, Reflections, You, and Settings
-- Session-only journal draft state
+- Local JSON journal entry persistence in Electron user data
 - Placeholder Supermemory Local connection indicator and typed client methods
-- No persistence, AI generation, memory retrieval, authentication, or database
+- No AI generation, memory retrieval, authentication, or database
 
 ## Stack
 
@@ -77,8 +77,8 @@ The other methods are typed placeholders for later product work.
 ## Routes
 
 - `/today`: daily writing screen
-- `/calendar`: month calendar with development-only sample entries
-- `/calendar/:date`: sample entry detail view
+- `/calendar`: month calendar of saved entries
+- `/calendar/:date`: saved entry detail view
 - `/reflections`: example longitudinal reflections
 - `/profile`: demonstration living profile
 - `/settings`: appearance and Supermemory Local settings
@@ -86,8 +86,8 @@ The other methods are typed placeholders for later product work.
 
 ## Current Limitations
 
-- Journal text is kept in React state for the current app session only
-- Calendar entries, reflections, and profile content are demonstration data
+- Journal entries are local JSON files only; they are not encrypted or synced
+- Reflections and profile content are demonstration data
 - Supermemory writes, searches, and profile retrieval are not implemented
 - No markdown, rich text, backend server, database, authentication, or syncing
 

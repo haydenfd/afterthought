@@ -12,6 +12,8 @@ import {
   startOfWeek,
 } from 'date-fns';
 
+import type { JournalEntry } from '../../shared/journal-entry';
+
 export interface CalendarDay {
   date: Date;
   dayNumber: string;
@@ -21,12 +23,10 @@ export interface CalendarDay {
   hasEntry: boolean;
 }
 
-const exampleEntryDayNumbers = [1, 2, 3, 5, 6, 8, 10, 11, 14, 17, 21, 24, 27];
-
 export function createMonthGrid(
   month: Date,
   today: Date = new Date(),
-  markedDates: Date[] = getExampleJournalDates(month, today),
+  markedDates: Date[] = [],
 ): CalendarDay[] {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
@@ -50,17 +50,28 @@ export function createMonthGrid(
   return days;
 }
 
-export function getExampleJournalDates(month: Date, today: Date = new Date()): Date[] {
-  const monthStart = startOfMonth(month);
-  const normalizedToday = startOfDay(today);
+export function groupEntriesByLocalDate(
+  entries: JournalEntry[],
+): Map<string, JournalEntry[]> {
+  return entries.reduce((groups, entry) => {
+    const date = new Date(entry.createdAt);
 
-  return exampleEntryDayNumbers
-    .map(
-      (dayNumber) =>
-        new Date(monthStart.getFullYear(), monthStart.getMonth(), dayNumber),
-    )
-    .filter((date) => isSameMonth(date, monthStart))
-    .filter((date) => !isAfter(startOfDay(date), normalizedToday));
+    if (Number.isNaN(date.getTime())) {
+      return groups;
+    }
+
+    const key = format(date, 'yyyy-MM-dd');
+    const existingEntries = groups.get(key) ?? [];
+    groups.set(key, [...existingEntries, entry]);
+    return groups;
+  }, new Map<string, JournalEntry[]>());
+}
+
+export function countEntriesInMonth(entries: JournalEntry[], month: Date): number {
+  return entries.filter((entry) => {
+    const date = new Date(entry.createdAt);
+    return !Number.isNaN(date.getTime()) && isSameMonth(date, month);
+  }).length;
 }
 
 export function canNavigateToMonth(month: Date, today: Date = new Date()): boolean {

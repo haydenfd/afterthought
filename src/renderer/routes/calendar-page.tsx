@@ -1,17 +1,19 @@
 import { addMonths, format, startOfMonth } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import {
   canNavigateToMonth,
+  countEntriesInMonth,
   createMonthGrid,
-  getExampleJournalDates,
+  groupEntriesByLocalDate,
   isSelectableEntryDay,
 } from '@/lib/calendar';
 import { formatRouteDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
+import type { JournalEntry } from '../../shared/journal-entry';
 
 const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -19,16 +21,43 @@ export function CalendarPage() {
   const navigate = useNavigate();
   const today = useMemo(() => new Date(), []);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(today));
-  const markedDates = useMemo(
-    () => getExampleJournalDates(visibleMonth, today),
-    [visibleMonth, today],
-  );
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const entriesByDate = useMemo(() => groupEntriesByLocalDate(entries), [entries]);
+  const markedDates = useMemo(() => {
+    return [...entriesByDate.keys()].map((date) => new Date(`${date}T00:00:00`));
+  }, [entriesByDate]);
   const monthGrid = useMemo(
     () => createMonthGrid(visibleMonth, today, markedDates),
     [visibleMonth, today, markedDates],
   );
+  const monthlyEntryCount = useMemo(
+    () => countEntriesInMonth(entries, visibleMonth),
+    [entries, visibleMonth],
+  );
   const nextMonth = addMonths(visibleMonth, 1);
   const canGoNext = canNavigateToMonth(nextMonth, today);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.entries
+      .list()
+      .then((loadedEntries) => {
+        if (isCurrent) {
+          setEntries(loadedEntries);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setLoadError(true);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   return (
     <section className="mx-auto min-h-screen max-w-5xl px-10 py-10">
@@ -39,7 +68,9 @@ export function CalendarPage() {
             {format(visibleMonth, 'MMMM yyyy')}
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            {markedDates.length} entries this month
+            {monthlyEntryCount === 1
+              ? '1 entry this month'
+              : `${monthlyEntryCount} entries this month`}
           </p>
         </div>
 
@@ -75,6 +106,17 @@ export function CalendarPage() {
           ))}
         </div>
 
+        {monthlyEntryCount === 0 ? (
+          <p className="px-4 pt-4 text-sm text-muted-foreground">
+            No entries yet this month.
+          </p>
+        ) : null}
+        {loadError ? (
+          <p className="px-4 pt-4 text-sm text-muted-foreground">
+            Entries could not be loaded right now.
+          </p>
+        ) : null}
+
         <div className="grid grid-cols-7">
           {monthGrid.map((day) => {
             const selectable = isSelectableEntryDay(day);
@@ -109,11 +151,6 @@ export function CalendarPage() {
                     <span className="h-2 w-2 rounded-full bg-primary" />
                   ) : null}
                 </div>
-                {day.hasEntry && day.isCurrentMonth && !day.isFuture ? (
-                  <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                    Sample entry
-                  </p>
-                ) : null}
               </button>
             );
           })}
