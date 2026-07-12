@@ -1,0 +1,102 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import type { SupermemoryClient } from './supermemory-client';
+import { JOURNAL_MEMORY_CONTAINER } from './supermemory-client';
+import { createMemoryService } from './memory-service';
+
+describe('memory service', () => {
+  it('normalizes profile and paginated extracted memories', async () => {
+    const post = vi
+      .fn()
+      .mockResolvedValueOnce({
+        memoryEntries: [
+          {
+            id: 'one',
+            memory: '  Building gives the week energy.  ',
+            metadata: { sourceDate: '2026-07-10T15:30:00-07:00' },
+          },
+        ],
+        pagination: { currentPage: 1, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        memories: [{ id: 'two', memory: 'Rest has become easier to protect.' }],
+        pagination: { currentPage: 2, totalPages: 2 },
+      });
+    const client = {
+      profile: vi.fn().mockResolvedValue({
+        profile: { static: ['Values quiet focus'], dynamic: ['Building often'] },
+      }),
+      post,
+    } as unknown as SupermemoryClient;
+
+    await expect(
+      createMemoryService(Promise.resolve(client)).refresh(),
+    ).resolves.toEqual({
+      status: 'online',
+      profile: {
+        static: ['Values quiet focus'],
+        dynamic: ['Building often'],
+      },
+      memories: [
+        {
+          id: 'one',
+          text: 'Building gives the week energy.',
+          sourceDate: '2026-07-10T15:30:00-07:00',
+        },
+        { id: 'two', text: 'Rest has become easier to protect.' },
+      ],
+    });
+    expect(post).toHaveBeenNthCalledWith(2, '/v4/memories/list', {
+      body: {
+        containerTags: [JOURNAL_MEMORY_CONTAINER],
+        limit: 100,
+        page: 2,
+      },
+    });
+  });
+
+  it('returns available memories when the profile request fails', async () => {
+    const client = {
+      profile: vi.fn().mockRejectedValue(new Error('profile unavailable')),
+      post: vi.fn().mockResolvedValue({
+        memories: [{ id: 'one', memory: 'A remembered pattern.' }],
+      }),
+    } as unknown as SupermemoryClient;
+
+    await expect(
+      createMemoryService(Promise.resolve(client)).refresh(),
+    ).resolves.toEqual({
+      status: 'online',
+      profile: { static: [], dynamic: [] },
+      memories: [{ id: 'one', text: 'A remembered pattern.' }],
+      message: 'Some memory details could not be loaded. Try refreshing again.',
+    });
+  });
+
+  it('normalizes complete request failure into an offline result', async () => {
+    const client = {
+      profile: vi.fn().mockRejectedValue(new Error('offline')),
+      post: vi.fn().mockRejectedValue(new Error('offline')),
+    } as unknown as SupermemoryClient;
+
+    await expect(
+      createMemoryService(Promise.resolve(client)).refresh(),
+    ).resolves.toEqual({
+      status: 'offline',
+      profile: { static: [], dynamic: [] },
+      memories: [],
+      message: 'Supermemory Local is unavailable. Your journal remains saved locally.',
+    });
+  });
+
+  it('normalizes client initialization failure into an offline result', async () => {
+    await expect(
+      createMemoryService(Promise.reject(new Error('unavailable'))).refresh(),
+    ).resolves.toEqual({
+      status: 'offline',
+      profile: { static: [], dynamic: [] },
+      memories: [],
+      message: 'Supermemory Local is unavailable. Your journal remains saved locally.',
+    });
+  });
+});

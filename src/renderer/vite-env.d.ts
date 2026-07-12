@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
+import type { MemoryRefreshResult } from '../shared/memory';
 
 declare global {
   interface Window {
@@ -21,6 +22,9 @@ declare global {
         create: (input: CreateJournalEntryInput) => Promise<JournalEntry>;
         get: (id: string) => Promise<JournalEntry | null>;
         list: () => Promise<JournalEntry[]>;
+      };
+      memory: {
+        refresh: () => Promise<MemoryRefreshResult>;
       };
     };
   }

@@ -12,8 +12,9 @@ This scaffold focuses on the initial desktop writing experience only:
 - Secure Electron app structure with main, preload, and React renderer processes
 - Calm journaling shell with Today, Calendar, Reflections, You, and Settings
 - Local JSON journal entry persistence in Electron user data
-- Placeholder Supermemory Local connection indicator and typed client methods
-- No AI generation, memory retrieval, authentication, or database
+- Best-effort ingestion of completed entries into Supermemory Local
+- Live local memory and profile inspection in Reflections
+- No AI generation, authentication, or database
 
 ## Stack
 
@@ -48,7 +49,7 @@ npm run format:check
 
 ## Supermemory Local
 
-The placeholder client defaults to:
+The desktop client connects to:
 
 ```text
 http://localhost:6767
@@ -64,22 +65,17 @@ The app does not require Supermemory Local to be running. If the local service i
 unavailable, the Settings page and sidebar show an offline state without
 blocking the journaling UI.
 
-The placeholder client lives in `src/renderer/lib/supermemory.ts` and exposes:
-
-- `checkConnection`
-- `addJournalEntry`
-- `searchMemories`
-- `getProfile`
-
-Only `checkConnection` performs a lightweight local availability check today.
-The other methods are typed placeholders for later product work.
+Completed entries are saved to local JSON first, then sent asynchronously to the
+`afterthought:user:local` container. A failed or unavailable memory service never
+blocks the local journal save. Reflections can refresh the extracted memories and
+profile, and remains usable in a quiet offline state.
 
 ## Routes
 
 - `/today`: daily writing screen
 - `/calendar`: month calendar of saved entries
 - `/calendar/:date`: saved entry detail view
-- `/reflections`: example longitudinal reflections
+- `/reflections`: live local memories with clearly labeled examples
 - `/profile`: demonstration living profile
 - `/settings`: appearance and Supermemory Local settings
 - `/`: redirects to `/today`
@@ -87,14 +83,13 @@ The other methods are typed placeholders for later product work.
 ## Current Limitations
 
 - Journal entries are local JSON files only; they are not encrypted or synced
-- Reflections and profile content are demonstration data
-- Supermemory writes, searches, and profile retrieval are not implemented
+- The You profile content remains demonstration data
+- Supermemory processing can take a short time after an entry is saved
 - No markdown, rich text, backend server, database, authentication, or syncing
 
 ## Planned Next Steps
 
 - Add local encrypted journal storage
-- Connect completed entries to Supermemory Local
 - Retrieve relevant prior memories for follow-up prompts
 - Replace demonstration profile and reflection data with accumulated memory
 - Add import/export and backup flows

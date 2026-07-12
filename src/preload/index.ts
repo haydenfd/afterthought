@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
+import type { MemoryRefreshResult } from '../shared/memory';
 
 const afterthoughtApi = {
   platform: process.platform,
@@ -18,6 +19,9 @@ const afterthoughtApi = {
     get: (id: string): Promise<JournalEntry | null> =>
       ipcRenderer.invoke('entries:get', id),
     list: (): Promise<JournalEntry[]> => ipcRenderer.invoke('entries:list'),
+  },
+  memory: {
+    refresh: (): Promise<MemoryRefreshResult> => ipcRenderer.invoke('memory:refresh'),
   },
 } as const;
 

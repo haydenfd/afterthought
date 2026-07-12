@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
+import { createMemoryService } from './memory-service';
 import { createSupermemoryClient } from './supermemory-client';
 import { createJournalMemoryIngestor } from './supermemory-ingestion';
 
@@ -95,6 +96,7 @@ function createMainWindow(): void {
 void app.whenReady().then(() => {
   const entryStorage = createEntryStorage(join(app.getPath('userData'), 'entries'));
   const supermemoryClient = createSupermemoryClient();
+  const memory = createMemoryService(supermemoryClient);
   const journal = createJournalService(
     entryStorage,
     createJournalMemoryIngestor(supermemoryClient),
@@ -119,6 +121,7 @@ void app.whenReady().then(() => {
     entryStorage.getEntry(typeof id === 'string' ? id : ''),
   );
   ipcMain.handle('entries:list', () => entryStorage.listEntries());
+  ipcMain.handle('memory:refresh', () => memory.refresh());
   createMainWindow();
 
   app.on('activate', () => {
