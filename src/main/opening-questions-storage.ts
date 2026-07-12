@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 
-import type { OpeningQuestionsBundle } from '../shared/reflection';
+import type { OpeningQuestions, OpeningQuestionsBundle } from '../shared/reflection';
 
 export interface OpeningQuestionsStorage {
   get(): Promise<OpeningQuestionsBundle | null>;
@@ -17,7 +17,7 @@ export function createOpeningQuestionsStorage(
     try {
       const raw = await readFile(bundlePath, 'utf8');
       const parsed: unknown = JSON.parse(raw);
-      return isOpeningQuestionsBundle(parsed) ? parsed : null;
+      return parseBundle(parsed);
     } catch {
       return null;
     }
@@ -42,18 +42,36 @@ export function createOpeningQuestionsStorage(
   return { get, set, clear };
 }
 
-function isOpeningQuestionsBundle(value: unknown): value is OpeningQuestionsBundle {
+function parseBundle(value: unknown): OpeningQuestionsBundle | null {
   if (!value || typeof value !== 'object') {
-    return false;
+    return null;
   }
 
   const record = value as Record<string, unknown>;
-  return (
+  if (isOpeningQuestions(record.questions) && typeof record.generatedAt === 'string') {
+    return { questions: record.questions, generatedAt: record.generatedAt };
+  }
+
+  if (
     typeof record.primaryQuestion === 'string' &&
     typeof record.alternateQuestion === 'string' &&
-    typeof record.reason === 'string' &&
-    Array.isArray(record.sourceMemoryIds) &&
-    record.sourceMemoryIds.every((id) => typeof id === 'string') &&
     typeof record.generatedAt === 'string'
+  ) {
+    return {
+      questions: [record.primaryQuestion, record.alternateQuestion],
+      generatedAt: record.generatedAt,
+    };
+  }
+
+  return null;
+}
+
+function isOpeningQuestions(value: unknown): value is OpeningQuestions {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every(
+      (question) => typeof question === 'string' && question.trim().length > 0,
+    )
   );
 }

@@ -52,18 +52,26 @@ describe('entry storage', () => {
 
   it('lists entries newest first', async () => {
     const storage = createEntryStorage(await createTemporaryEntriesDirectory());
-    const first = await storage.createEntry({
-      prompt: 'First',
-      content: 'First entry',
-    });
-    const second = await storage.createEntry({
-      prompt: 'Second',
-      content: 'Second entry',
-    });
+    vi.useFakeTimers();
 
-    const entries = await storage.listEntries();
+    try {
+      vi.setSystemTime(new Date('2026-07-12T01:00:00.000Z'));
+      const first = await storage.createEntry({
+        prompt: 'First',
+        content: 'First entry',
+      });
+      vi.setSystemTime(new Date('2026-07-12T01:00:00.001Z'));
+      const second = await storage.createEntry({
+        prompt: 'Second',
+        content: 'Second entry',
+      });
 
-    expect(entries.map((entry) => entry.id)).toEqual([second.id, first.id]);
+      const entries = await storage.listEntries();
+
+      expect(entries.map((entry) => entry.id)).toEqual([second.id, first.id]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('skips malformed JSON files while listing entries', async () => {

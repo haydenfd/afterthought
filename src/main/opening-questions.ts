@@ -2,30 +2,22 @@ import type { EntryStorage } from './entry-storage';
 import { callGroq } from './groq-client';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 import type { PreferencesStorage } from './preferences-storage';
-import type { OpeningQuestionsBundle } from '../shared/reflection';
+import type { OpeningQuestions, OpeningQuestionsBundle } from '../shared/reflection';
 import type { JournalEntry } from '../shared/journal-entry';
 
 const recentEntryLimit = 4;
 const relevantMemoryLimit = 5;
 
-const systemPrompt = `You are a reflective presence for someone's private journal — like a therapist who has been quietly listening for weeks, not an AI assistant. Using the context you're given below, write two short opening questions for today's journal entry: a primary question and an alternate.
+const systemPrompt = `You are a reflective presence for someone's private journal — like a thoughtful companion who has been quietly listening for weeks, not an AI assistant. Using the context below, write exactly two complementary opening questions for today's journal entry.
 
-Each question must:
-- follow an ongoing experiment or habit the person is in the middle of, revisit a thread they left unresolved, or notice a pattern that's evolving over time
-- reference something concrete and specific from their recent entries or memories
-- when following an experiment, intention, or habit, ask what changed, surprised them, or became noticeable rather than merely checking whether it still works
-- be warm and curious, never clinical
-- never give advice, never diagnose, and never use generic therapeutic language like "how does that make you feel"
-- avoid yes/no phrasing and task-follow-up framing; do not start with check-ins such as "Does", "Did", "Have", or "Is"
-- avoid one-off errands or logistics unless they clearly became meaningful to the person
-- avoid repeating a question that was already asked recently, if that's shown in the context
-- be a single sentence, under 30 words
+The first question must follow up on a recent experiment, habit, or unresolved thread. Ask what changed, surprised them, or became noticeable — never merely whether it still works.
 
-The primary and alternate questions should take genuinely different angles (e.g. one following up on a recent thread, one noticing a longer pattern) — not two versions of the same question.
+The second question must zoom out to a broader pattern, value, or emotional theme. It should offer a noticeably different lens from the first, not a rewording.
 
-Respond with ONLY a JSON object in exactly this shape, nothing else:
-{"primaryQuestion": "...", "alternateQuestion": "...", "reason": "one short sentence on why these were chosen", "sourceMemoryIds": ["id1", "id2"]}
-sourceMemoryIds should list the ids (given to you in the context below) of the memories that most directly informed the questions — omit ids that weren't actually used.`;
+Each question must be a single warm, curious sentence under 30 words. Guide writing rather than interrogating the person. Avoid yes/no phrasing, advice, diagnosis, clichés, generic therapy language, one-off logistics, and task-follow-up framing.
+
+Respond with ONLY a JSON array of exactly two strings, nothing else:
+["first question", "second question"]`;
 
 export async function generateOpeningQuestions(
   entryStorage: EntryStorage,
@@ -60,13 +52,10 @@ export async function generateOpeningQuestions(
     userName,
   );
 
-  const response = await callGroq(
-    [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
-    ],
-    { jsonMode: true },
-  );
+  const response = await callGroq([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userMessage },
+  ]);
 
   if (!response) {
     return null;
@@ -167,7 +156,7 @@ function buildUserMessage(
 }
 
 function parseBundle(response: string): OpeningQuestionsBundle | null {
-  const jsonText = extractJsonObject(response);
+  const jsonText = extractJsonArray(response);
 
   if (!jsonText) {
     return null;
@@ -176,15 +165,12 @@ function parseBundle(response: string): OpeningQuestionsBundle | null {
   try {
     const parsed: unknown = JSON.parse(jsonText);
 
-    if (!isValidGroqBundle(parsed)) {
+    if (!isOpeningQuestions(parsed)) {
       return null;
     }
 
     return {
-      primaryQuestion: parsed.primaryQuestion,
-      alternateQuestion: parsed.alternateQuestion,
-      reason: parsed.reason,
-      sourceMemoryIds: parsed.sourceMemoryIds,
+      questions: parsed,
       generatedAt: new Date().toISOString(),
     };
   } catch {
@@ -192,38 +178,43 @@ function parseBundle(response: string): OpeningQuestionsBundle | null {
   }
 }
 
-function isValidGroqBundle(value: unknown): value is {
-  primaryQuestion: string;
-  alternateQuestion: string;
-  reason: string;
-  sourceMemoryIds: string[];
-} {
-  const record = asRecord(value);
+function isOpeningQuestions(value: unknown): value is OpeningQuestions {
+  if (!Array.isArray(value) || value.length !== 2) {
+    return false;
+  }
 
-  if (!record) {
+  const firstQuestion: unknown = value[0];
+  const secondQuestion: unknown = value[1];
+  if (
+    typeof firstQuestion !== 'string' ||
+    typeof secondQuestion !== 'string' ||
+    firstQuestion.trim().length === 0 ||
+    secondQuestion.trim().length === 0 ||
+    countWords(firstQuestion) > 30 ||
+    countWords(secondQuestion) > 30
+  ) {
     return false;
   }
 
   return (
-    typeof record.primaryQuestion === 'string' &&
-    record.primaryQuestion.trim().length > 0 &&
-    typeof record.alternateQuestion === 'string' &&
-    record.alternateQuestion.trim().length > 0 &&
-    typeof record.reason === 'string' &&
-    Array.isArray(record.sourceMemoryIds) &&
-    record.sourceMemoryIds.every((id) => typeof id === 'string')
+    firstQuestion.trim().toLocaleLowerCase() !==
+    secondQuestion.trim().toLocaleLowerCase()
   );
 }
 
-function extractJsonObject(value: string): string | null {
-  const start = value.indexOf('{');
-  const end = value.lastIndexOf('}');
+function extractJsonArray(value: string): string | null {
+  const start = value.indexOf('[');
+  const end = value.lastIndexOf(']');
 
   if (start === -1 || end === -1 || end < start) {
     return null;
   }
 
   return value.slice(start, end + 1);
+}
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).length;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

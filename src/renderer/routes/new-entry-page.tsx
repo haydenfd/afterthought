@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
 
-const fallbackPrompt =
-  'What has been taking up more space in your mind than you expected?';
+const fallbackQuestions = [
+  'What has been taking up more space in your mind than you expected?',
+  'What are you noticing about the way you want to move through this season?',
+] as const;
 const discardMessage = 'Discard this unfinished journal entry?';
 
 export function NewEntryPage() {
@@ -21,11 +23,12 @@ export function NewEntryPage() {
   const bypassPopGuard = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [aiPrompt, setAiPrompt] = useState<string | null>(null);
+  const [aiQuestions, setAiQuestions] = useState<[string, string] | null>(null);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
   const [startedAt] = useState(() => new Date());
   const wordCount = countWords(draft);
-  const prompt = aiPrompt ?? fallbackPrompt;
+  const questions = aiQuestions ?? fallbackQuestions;
+  const primaryQuestion = questions[0];
   const hasUnsavedContent = draft.trim().length > 0;
 
   useEffect(() => {
@@ -39,8 +42,8 @@ export function NewEntryPage() {
     void window.afterthought.reflection
       .openingQuestions()
       .then((result) => {
-        if (isCurrent && result.primaryQuestion) {
-          setAiPrompt(result.primaryQuestion);
+        if (isCurrent && result.questions) {
+          setAiQuestions(result.questions);
         }
       })
       .catch(() => {
@@ -166,7 +169,7 @@ export function NewEntryPage() {
     setSaveError(null);
 
     try {
-      await window.afterthought.entries.create({ prompt, content });
+      await window.afterthought.entries.create({ prompt: primaryQuestion, content });
       finishEntry();
     } catch {
       setSaveError('Your entry could not be saved. Please try again.');
@@ -213,9 +216,12 @@ export function NewEntryPage() {
             </div>
           ) : (
             <>
-              <h1 className="mb-10 max-w-4xl writing-text text-4xl leading-[1.22]">
-                {prompt}
-              </h1>
+              <div className="mb-10 max-w-4xl space-y-6">
+                <h1 className="writing-text text-3xl leading-[1.28]">{questions[0]}</h1>
+                <p className="writing-text text-2xl leading-8 text-muted-foreground">
+                  {questions[1]}
+                </p>
+              </div>
 
               <Textarea
                 ref={textareaRef}

@@ -31,7 +31,7 @@ describe('NewEntryPage', () => {
 
   it('shows the static fallback prompt when there is no AI question', async () => {
     setAfterthoughtApi(
-      vi.fn().mockResolvedValue({ primaryQuestion: null, source: 'fallback' }),
+      vi.fn().mockResolvedValue({ questions: null, source: 'fallback' }),
     );
 
     renderPage();
@@ -48,7 +48,10 @@ describe('NewEntryPage', () => {
   it('shows only the primary AI-generated question when available', async () => {
     setAfterthoughtApi(
       vi.fn().mockResolvedValue({
-        primaryQuestion: 'Have you kept up the phone cutoff this week?',
+        questions: [
+          'What changed when you kept the phone cutoff last night?',
+          'What are you learning about protecting your mornings?',
+        ],
         source: 'ai',
       } satisfies OpeningQuestionsResult),
     );
@@ -56,13 +59,18 @@ describe('NewEntryPage', () => {
     renderPage();
 
     expect(
-      await screen.findByText('Have you kept up the phone cutoff this week?'),
+      await screen.findByText(
+        'What changed when you kept the phone cutoff last night?',
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
         'What has been taking up more space in your mind than you expected?',
       ),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('What are you learning about protecting your mornings?'),
+    ).toBeInTheDocument();
   });
 
   it('falls back to the static prompt if the IPC call rejects', async () => {
@@ -79,7 +87,7 @@ describe('NewEntryPage', () => {
 
   it('asks before discarding unfinished writing', async () => {
     setAfterthoughtApi(
-      vi.fn().mockResolvedValue({ primaryQuestion: null, source: 'fallback' }),
+      vi.fn().mockResolvedValue({ questions: null, source: 'fallback' }),
     );
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
@@ -98,7 +106,7 @@ describe('NewEntryPage', () => {
 
   it('guards browser-style back navigation when the draft has text', async () => {
     setAfterthoughtApi(
-      vi.fn().mockResolvedValue({ primaryQuestion: null, source: 'fallback' }),
+      vi.fn().mockResolvedValue({ questions: null, source: 'fallback' }),
     );
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const historyGo = vi.spyOn(window.history, 'go').mockImplementation(() => {});
@@ -117,7 +125,7 @@ describe('NewEntryPage', () => {
   it('saves the entry and shows the brief completion state', async () => {
     const create = vi.fn().mockResolvedValue({ id: 'entry-id' });
     setAfterthoughtApi(
-      vi.fn().mockResolvedValue({ primaryQuestion: null, source: 'fallback' }),
+      vi.fn().mockResolvedValue({ questions: null, source: 'fallback' }),
       create,
     );
 

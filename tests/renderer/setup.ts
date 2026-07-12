@@ -42,7 +42,7 @@ Object.defineProperty(window, 'afterthought', {
     reflection: {
       openingQuestions: vi
         .fn()
-        .mockResolvedValue({ primaryQuestion: null, source: 'fallback' }),
+        .mockResolvedValue({ questions: null, source: 'fallback' }),
     },
   },
 });

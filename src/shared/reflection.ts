@@ -1,12 +1,11 @@
+export type OpeningQuestions = [string, string];
+
 export type OpeningQuestionsBundle = {
-  primaryQuestion: string;
-  alternateQuestion: string;
-  reason: string;
-  sourceMemoryIds: string[];
+  questions: OpeningQuestions;
   generatedAt: string;
 };
 
 export type OpeningQuestionsResult = {
-  primaryQuestion: string | null;
+  questions: OpeningQuestions | null;
   source: 'ai' | 'fallback';
 };

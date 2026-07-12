@@ -48,7 +48,7 @@ describe('App', () => {
   it('returns to Calendar and reloads entries after finishing a new entry', async () => {
     const openingQuestions = vi
       .fn()
-      .mockResolvedValue({ primaryQuestion: null, source: 'fallback' });
+      .mockResolvedValue({ questions: null, source: 'fallback' });
     const create = vi.fn().mockResolvedValue({ id: 'entry-id' });
     const list = vi.fn().mockResolvedValue([
       {

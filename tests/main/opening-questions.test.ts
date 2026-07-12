@@ -60,12 +60,10 @@ function clientWithMemory(): SupermemoryClient {
   };
 }
 
-const validGroqResponse = JSON.stringify({
-  primaryQuestion: 'Have you kept up the phone cutoff this week?',
-  alternateQuestion: 'What does a steadier morning look like for you?',
-  reason: 'Follows up on the ongoing phone cutoff experiment.',
-  sourceMemoryIds: ['memory-one'],
-});
+const validGroqResponse = JSON.stringify([
+  'What changed when you kept the phone cutoff last night?',
+  'What are you learning about protecting your mornings?',
+]);
 
 describe('generateOpeningQuestions', () => {
   it('returns null without calling Groq when there are no journal entries yet', async () => {
@@ -91,15 +89,15 @@ describe('generateOpeningQuestions', () => {
     );
 
     expect(result).toMatchObject({
-      primaryQuestion: 'Have you kept up the phone cutoff this week?',
-      alternateQuestion: 'What does a steadier morning look like for you?',
-      reason: 'Follows up on the ongoing phone cutoff experiment.',
-      sourceMemoryIds: ['memory-one'],
+      questions: [
+        'What changed when you kept the phone cutoff last night?',
+        'What are you learning about protecting your mornings?',
+      ],
     });
     expect(typeof result?.generatedAt).toBe('string');
   });
 
-  it('calls Groq in JSON mode with the recent entries as primary context', async () => {
+  it('uses recent entries as primary context and asks for a two-question array', async () => {
     vi.mocked(callGroq).mockResolvedValue(validGroqResponse);
 
     await generateOpeningQuestions(
@@ -108,10 +106,14 @@ describe('generateOpeningQuestions', () => {
       preferencesStub(),
     );
 
-    expect(callGroq).toHaveBeenCalledWith(expect.any(Array), { jsonMode: true });
+    expect(callGroq).toHaveBeenCalledWith(expect.any(Array));
     const [messages] = vi.mocked(callGroq).mock.calls[0]!;
     const userMessage = messages.find((message) => message.role === 'user')?.content;
+    const systemMessage = messages.find(
+      (message) => message.role === 'system',
+    )?.content;
     expect(userMessage).toContain('Kept up the phone cutoff again last night.');
+    expect(systemMessage).toContain('JSON array of exactly two strings');
   });
 
   it('asks for reflective observations instead of yes-or-no experiment check-ins', async () => {
@@ -128,9 +130,9 @@ describe('generateOpeningQuestions', () => {
       (message) => message.role === 'system',
     )?.content;
     expect(systemMessage).toContain(
-      'ask what changed, surprised them, or became noticeable',
+      'Ask what changed, surprised them, or became noticeable',
     );
-    expect(systemMessage).toContain('avoid yes/no phrasing and task-follow-up framing');
+    expect(systemMessage).toContain('Avoid yes/no phrasing, advice, diagnosis');
   });
 
   it('returns null when Groq response is not valid JSON', async () => {
@@ -146,9 +148,7 @@ describe('generateOpeningQuestions', () => {
   });
 
   it('returns null when Groq returns the wrong shape', async () => {
-    vi.mocked(callGroq).mockResolvedValue(
-      JSON.stringify({ primaryQuestion: 'only one field?' }),
-    );
+    vi.mocked(callGroq).mockResolvedValue(JSON.stringify(['Only one question?']));
 
     await expect(
       generateOpeningQuestions(
@@ -181,7 +181,10 @@ describe('generateOpeningQuestions', () => {
     );
 
     expect(result).toMatchObject({
-      primaryQuestion: 'Have you kept up the phone cutoff this week?',
+      questions: [
+        'What changed when you kept the phone cutoff last night?',
+        'What are you learning about protecting your mornings?',
+      ],
     });
     const [messages] = vi.mocked(callGroq).mock.calls[0]!;
     const userMessage = messages.find((message) => message.role === 'user')?.content;

@@ -18,10 +18,10 @@ afterEach(async () => {
 });
 
 const sampleBundle: OpeningQuestionsBundle = {
-  primaryQuestion: 'Have you kept up the phone cutoff this week?',
-  alternateQuestion: 'What does a steadier morning look like for you?',
-  reason: 'Follows up on the ongoing phone cutoff experiment.',
-  sourceMemoryIds: ['memory-one'],
+  questions: [
+    'What changed when you kept the phone cutoff last night?',
+    'What are you learning about protecting your mornings?',
+  ],
   generatedAt: '2026-07-11T00:00:00.000Z',
 };
 
@@ -61,6 +61,24 @@ describe('opening questions storage', () => {
     const storage = createOpeningQuestionsStorage(bundlePath);
 
     expect(await storage.get()).toBeNull();
+  });
+
+  it('reads legacy cached questions without discarding them', async () => {
+    const bundlePath = await createTemporaryBundlePath();
+    await writeFile(
+      bundlePath,
+      JSON.stringify({
+        primaryQuestion: 'What changed when you kept the phone cutoff last night?',
+        alternateQuestion: 'What are you learning about protecting your mornings?',
+        reason: 'legacy metadata',
+        sourceMemoryIds: ['memory-one'],
+        generatedAt: '2026-07-11T00:00:00.000Z',
+      }),
+      'utf8',
+    );
+    const storage = createOpeningQuestionsStorage(bundlePath);
+
+    expect(await storage.get()).toEqual(sampleBundle);
   });
 });
 
