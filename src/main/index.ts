@@ -1,6 +1,10 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
+import { createEntryStorage } from './entry-storage';
+
+app.setName('Afterthought');
+
 const isDevelopment = !app.isPackaged;
 
 interface SupermemoryConnectionResult {
@@ -86,10 +90,27 @@ function createMainWindow(): void {
 }
 
 void app.whenReady().then(() => {
-  app.setName('Afterthought');
+  const entryStorage = createEntryStorage(join(app.getPath('userData'), 'entries'));
+
   ipcMain.handle('supermemory:check-connection', (_event, url: unknown) =>
     checkSupermemoryConnection(url),
   );
+  ipcMain.handle('entries:create', (_event, input: unknown) => {
+    if (!input || typeof input !== 'object') {
+      throw new Error('Invalid journal entry.');
+    }
+
+    const { prompt, content, title } = input as Record<string, unknown>;
+    return entryStorage.createEntry({
+      prompt: typeof prompt === 'string' ? prompt : '',
+      content: typeof content === 'string' ? content : '',
+      ...(typeof title === 'string' ? { title } : {}),
+    });
+  });
+  ipcMain.handle('entries:get', (_event, id: unknown) =>
+    entryStorage.getEntry(typeof id === 'string' ? id : ''),
+  );
+  ipcMain.handle('entries:list', () => entryStorage.listEntries());
   createMainWindow();
 
   app.on('activate', () => {
