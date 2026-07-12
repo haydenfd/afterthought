@@ -1,4 +1,5 @@
 import type { JournalEntry } from '../shared/journal-entry';
+import type { PreferencesStorage } from './preferences-storage';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 
 export interface JournalMemoryIngestor {
@@ -7,10 +8,13 @@ export interface JournalMemoryIngestor {
 
 export function createJournalMemoryIngestor(
   clientPromise: Promise<SupermemoryClient>,
+  preferences: PreferencesStorage,
 ): JournalMemoryIngestor {
   return {
     async ingestEntry(entry) {
       const client = await clientPromise;
+      const { userName } = await preferences.getPreferences();
+
       await client.documents.add({
         content: JSON.stringify(entry, null, 2),
         containerTag: JOURNAL_MEMORY_CONTAINER,
@@ -19,6 +23,7 @@ export function createJournalMemoryIngestor(
           source: 'afterthought-journal',
           sourceDate: entry.createdAt,
         },
+        ...(userName ? { entityContext: `The user's name is ${userName}.` } : {}),
       });
     },
   };

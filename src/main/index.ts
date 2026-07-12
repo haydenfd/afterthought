@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
 import { createMemoryService } from './memory-service';
+import { createPreferencesStorage } from './preferences-storage';
 import { createSupermemoryClient } from './supermemory-client';
 import { createJournalMemoryIngestor } from './supermemory-ingestion';
 
@@ -95,11 +96,14 @@ function createMainWindow(): void {
 
 void app.whenReady().then(() => {
   const entryStorage = createEntryStorage(join(app.getPath('userData'), 'entries'));
+  const preferencesStorage = createPreferencesStorage(
+    join(app.getPath('userData'), 'preferences.json'),
+  );
   const supermemoryClient = createSupermemoryClient();
   const memory = createMemoryService(supermemoryClient);
   const journal = createJournalService(
     entryStorage,
-    createJournalMemoryIngestor(supermemoryClient),
+    createJournalMemoryIngestor(supermemoryClient, preferencesStorage),
   );
 
   ipcMain.handle('supermemory:check-connection', (_event, url: unknown) =>
@@ -122,6 +126,17 @@ void app.whenReady().then(() => {
   );
   ipcMain.handle('entries:list', () => entryStorage.listEntries());
   ipcMain.handle('memory:refresh', () => memory.refresh());
+  ipcMain.handle('preferences:get', () => preferencesStorage.getPreferences());
+  ipcMain.handle('preferences:set', (_event, update: unknown) => {
+    if (!update || typeof update !== 'object') {
+      throw new Error('Invalid preferences update.');
+    }
+
+    const { userName } = update as Record<string, unknown>;
+    return preferencesStorage.setPreferences({
+      ...(typeof userName === 'string' ? { userName } : {}),
+    });
+  });
   createMainWindow();
 
   app.on('activate', () => {

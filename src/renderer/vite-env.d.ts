@@ -2,6 +2,7 @@
 
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
+import type { Preferences } from '../shared/preferences';
 
 declare global {
   interface Window {
@@ -25,6 +26,10 @@ declare global {
       };
       memory: {
         refresh: () => Promise<MemoryRefreshResult>;
+      };
+      preferences: {
+        get: () => Promise<Preferences>;
+        set: (update: Partial<Preferences>) => Promise<Preferences>;
       };
     };
   }

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { Monitor, Moon, Sun, Wifi } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { SupermemoryStatus } from '@/components/supermemory/supermemory-status';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,23 @@ export function SettingsPage() {
     connectionMessage,
     testConnection,
   } = useSupermemory();
+  const [userName, setUserName] = useState('');
+  const [isNameLoaded, setIsNameLoaded] = useState(false);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.preferences.get().then((preferences) => {
+      if (isCurrent) {
+        setUserName(preferences.userName ?? '');
+        setIsNameLoaded(true);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
@@ -45,6 +63,34 @@ export function SettingsPage() {
       </header>
 
       <div className="space-y-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>Your name</CardTitle>
+            <CardDescription>
+              Used to personalize memories Supermemory extracts from new entries.
+              Applies to entries saved after this is set.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Name</Label>
+              <Input
+                id="user-name"
+                value={userName}
+                disabled={!isNameLoaded}
+                onChange={(event) => setUserName(event.target.value)}
+                onBlur={() => {
+                  void window.afterthought.preferences.set({
+                    userName: userName.trim(),
+                  });
+                }}
+                placeholder="Your name"
+                spellCheck={false}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>

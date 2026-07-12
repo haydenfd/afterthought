@@ -10,6 +10,7 @@ export interface SupermemoryClient {
       containerTag: string;
       customId: string;
       metadata: Record<string, string>;
+      entityContext?: string;
     }): Promise<unknown>;
   };
   profile(input: { containerTag: string }): Promise<unknown>;
