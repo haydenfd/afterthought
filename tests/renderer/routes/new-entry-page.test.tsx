@@ -41,6 +41,8 @@ describe('NewEntryPage', () => {
         'What has been taking up more space in your mind than you expected?',
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText("Today's prompt")).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
   });
 
   it('shows only the primary AI-generated question when available', async () => {
@@ -86,7 +88,7 @@ describe('NewEntryPage', () => {
     fireEvent.change(await screen.findByLabelText('Journal entry'), {
       target: { value: 'A thought worth keeping.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Calendar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Calendar' }));
 
     expect(confirm).toHaveBeenCalledWith('Discard this unfinished journal entry?');
     expect(screen.getByLabelText('Journal entry')).toHaveValue(
@@ -124,7 +126,7 @@ describe('NewEntryPage', () => {
     fireEvent.change(await screen.findByLabelText('Journal entry'), {
       target: { value: 'A thought worth keeping.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Finish entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
     expect(await screen.findByText('Your entry has been saved.')).toBeInTheDocument();
     expect(create).toHaveBeenCalledWith({

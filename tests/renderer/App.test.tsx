@@ -35,10 +35,12 @@ describe('App', () => {
 
     expect(screen.getByText('Afterthought')).toBeInTheDocument();
     expect(await screen.findByText(/entries this month/)).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'New Entry' })).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'New Entry' })).toHaveAttribute(
       'href',
       '/entry/new',
     );
+    expect(screen.queryByRole('button', { name: 'New Entry' })).not.toBeInTheDocument();
     expect(screen.queryByText('Today')).not.toBeInTheDocument();
     expect(openingQuestions).not.toHaveBeenCalled();
   });
@@ -78,7 +80,7 @@ describe('App', () => {
     fireEvent.change(await screen.findByLabelText('Journal entry'), {
       target: { value: 'A thought worth keeping.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Finish entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
     expect(await screen.findByText('Your entry has been saved.')).toBeInTheDocument();
     expect(

@@ -182,16 +182,15 @@ export function NewEntryPage() {
         <header className="mb-14 flex items-start justify-between gap-8">
           <button
             type="button"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/80 transition-colors hover:text-foreground"
+            aria-label="Back to Calendar"
             onClick={returnToCalendar}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Calendar
+            Back
           </button>
-          <p className="text-right text-xs leading-5 text-muted-foreground">
-            New entry
-            <br />
-            {format(startedAt, 'EEEE, MMMM d · h:mm a')}
+          <p className="text-right text-[11px] leading-4 text-muted-foreground/65">
+            {format(startedAt, 'EEE, MMM d · h:mm a')}
           </p>
         </header>
 
@@ -214,10 +213,7 @@ export function NewEntryPage() {
             </div>
           ) : (
             <>
-              <p className="mb-5 max-w-3xl text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Today&apos;s prompt
-              </p>
-              <h1 className="mb-8 max-w-4xl writing-text text-4xl leading-[1.22]">
+              <h1 className="mb-10 max-w-4xl writing-text text-4xl leading-[1.22]">
                 {prompt}
               </h1>
 
@@ -230,7 +226,7 @@ export function NewEntryPage() {
                 }}
                 placeholder="Start with the thought that keeps returning."
                 className={cn(
-                  'writing-text min-h-[380px] flex-1 border-0 bg-transparent px-0 py-0 text-[22px] leading-9 shadow-none placeholder:text-muted-foreground/55 focus-visible:ring-0',
+                  'writing-text min-h-[380px] flex-1 border-0 bg-transparent px-0 py-0 text-[22px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0',
                   'selection:bg-accent selection:text-accent-foreground',
                 )}
                 aria-label="Journal entry"
@@ -244,10 +240,11 @@ export function NewEntryPage() {
                 </p>
                 <Button
                   type="button"
-                  disabled={isSaving}
+                  size="sm"
+                  disabled={isSaving || !hasUnsavedContent}
                   onClick={() => void handleFinishEntry()}
                 >
-                  {isSaving ? 'Saving entry…' : 'Finish entry'}
+                  {isSaving ? 'Finishing…' : 'Finish'}
                 </Button>
               </footer>
               {saveError ? (

@@ -1,5 +1,5 @@
 import { addMonths, format, startOfMonth } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -76,10 +76,6 @@ export function CalendarPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button type="button" onClick={() => void navigate('/entry/new')}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            New Entry
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -124,7 +120,8 @@ export function CalendarPage() {
 
         <div className="grid grid-cols-7">
           {monthGrid.map((day) => {
-            const selectable = isSelectableEntryDay(day);
+            const selectable =
+              isSelectableEntryDay(day) || (day.isToday && day.isCurrentMonth);
 
             return (
               <button

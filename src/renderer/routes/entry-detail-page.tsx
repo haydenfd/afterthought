@@ -1,5 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ export function EntryDetailPage() {
   const { date } = useParams();
   const navigate = useNavigate();
   const parsedDate = parseRouteDate(date);
+  const isToday = parsedDate ? isSameDay(parsedDate, new Date()) : false;
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loadError, setLoadError] = useState(false);
   const entriesForDate = useMemo(() => {
@@ -79,9 +80,11 @@ export function EntryDetailPage() {
         ))}
         {entriesForDate.length === 0 && !loadError ? (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">No entry on this day.</p>
+            <p className="text-sm text-muted-foreground">
+              {isToday ? 'No entries yet today.' : 'No entries on this day.'}
+            </p>
             <Button type="button" onClick={() => void navigate('/entry/new')}>
-              Start a new entry
+              Start writing
             </Button>
           </div>
         ) : null}

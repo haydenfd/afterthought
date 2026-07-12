@@ -114,6 +114,25 @@ describe('generateOpeningQuestions', () => {
     expect(userMessage).toContain('Kept up the phone cutoff again last night.');
   });
 
+  it('asks for reflective observations instead of yes-or-no experiment check-ins', async () => {
+    vi.mocked(callGroq).mockResolvedValue(validGroqResponse);
+
+    await generateOpeningQuestions(
+      entryStorageStub(),
+      Promise.resolve(clientWithMemory()),
+      preferencesStub(),
+    );
+
+    const [messages] = vi.mocked(callGroq).mock.calls[0]!;
+    const systemMessage = messages.find(
+      (message) => message.role === 'system',
+    )?.content;
+    expect(systemMessage).toContain(
+      'ask what changed, surprised them, or became noticeable',
+    );
+    expect(systemMessage).toContain('avoid yes/no phrasing and task-follow-up framing');
+  });
+
   it('returns null when Groq response is not valid JSON', async () => {
     vi.mocked(callGroq).mockResolvedValue('not json at all');
 
