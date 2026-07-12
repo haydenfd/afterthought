@@ -2,6 +2,9 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
 import { createEntryStorage } from './entry-storage';
+import { createJournalService } from './journal-service';
+import { createSupermemoryClient } from './supermemory-client';
+import { createJournalMemoryIngestor } from './supermemory-ingestion';
 
 app.setName('Afterthought');
 
@@ -91,6 +94,11 @@ function createMainWindow(): void {
 
 void app.whenReady().then(() => {
   const entryStorage = createEntryStorage(join(app.getPath('userData'), 'entries'));
+  const supermemoryClient = createSupermemoryClient();
+  const journal = createJournalService(
+    entryStorage,
+    createJournalMemoryIngestor(supermemoryClient),
+  );
 
   ipcMain.handle('supermemory:check-connection', (_event, url: unknown) =>
     checkSupermemoryConnection(url),
@@ -101,7 +109,7 @@ void app.whenReady().then(() => {
     }
 
     const { prompt, content, title } = input as Record<string, unknown>;
-    return entryStorage.createEntry({
+    return journal.createEntry({
       prompt: typeof prompt === 'string' ? prompt : '',
       content: typeof content === 'string' ? content : '',
       ...(typeof title === 'string' ? { title } : {}),
