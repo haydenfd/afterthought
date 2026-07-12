@@ -32,7 +32,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
+        sans: ['Instrument Sans', 'system-ui', 'sans-serif'],
         writing: ['Iowan Old Style', 'Palatino', 'Georgia', 'serif'],
       },
       borderRadius: {
