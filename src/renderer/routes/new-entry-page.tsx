@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
+import type { OpeningCallback } from '../../shared/reflection';
 
 const fallbackQuestions = [
   'What has been taking up more space in your mind than you expected?',
@@ -24,6 +25,7 @@ export function NewEntryPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [aiQuestions, setAiQuestions] = useState<[string, string] | null>(null);
+  const [callback, setCallback] = useState<OpeningCallback | null>(null);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
   const [startedAt] = useState(() => new Date());
   const wordCount = countWords(draft);
@@ -44,6 +46,9 @@ export function NewEntryPage() {
       .then((result) => {
         if (isCurrent && result.questions) {
           setAiQuestions(result.questions);
+          if (result.callback) {
+            setCallback(result.callback);
+          }
         }
       })
       .catch(() => {
@@ -216,6 +221,17 @@ export function NewEntryPage() {
             </div>
           ) : (
             <>
+              {callback ? (
+                <div className="mb-8 max-w-3xl border-l-2 border-primary/70 pl-5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-primary/80">
+                    {callback.label}
+                  </p>
+                  <p className="mt-2 writing-text text-2xl leading-8 text-foreground/90">
+                    {callback.question}
+                  </p>
+                </div>
+              ) : null}
+
               <div className="mb-10 max-w-4xl space-y-6">
                 <h1 className="writing-text text-3xl leading-[1.28]">{questions[0]}</h1>
                 <p className="writing-text text-2xl leading-8 text-muted-foreground">

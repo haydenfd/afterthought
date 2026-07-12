@@ -150,7 +150,11 @@ void app.whenReady().then(async () => {
   ipcMain.handle('reflection:opening-questions', async () => {
     const cached = await openingQuestionsStorage.get();
     if (cached) {
-      return { questions: cached.questions, source: 'ai' as const };
+      return {
+        questions: cached.questions,
+        ...(cached.callback ? { callback: cached.callback } : {}),
+        source: 'ai' as const,
+      };
     }
 
     const bundle = await generateOpeningQuestions(
@@ -164,7 +168,11 @@ void app.whenReady().then(async () => {
     }
 
     await openingQuestionsStorage.set(bundle);
-    return { questions: bundle.questions, source: 'ai' as const };
+    return {
+      questions: bundle.questions,
+      ...(bundle.callback ? { callback: bundle.callback } : {}),
+      source: 'ai' as const,
+    };
   });
   createMainWindow();
 

@@ -4,7 +4,7 @@ import { ReflectionsPage } from '@/routes/reflections-page';
 import type { MemoryRefreshResult } from '../../../src/shared/memory';
 
 describe('ReflectionsPage', () => {
-  it('shows loading and then live profile data', async () => {
+  it('shows loading and then the remembered moments', async () => {
     const result: MemoryRefreshResult = {
       status: 'online',
       profile: {
@@ -25,9 +25,8 @@ describe('ReflectionsPage', () => {
 
     expect(screen.getByText('Gathering your local memories…')).toBeInTheDocument();
     expect(
-      await screen.findByText('Building has been energizing lately.'),
+      await screen.findByText('A named worry became more manageable.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Quiet focus matters.')).toBeInTheDocument();
   });
 
   it('shows an empty online state without treating it as an error', async () => {
@@ -43,7 +42,7 @@ describe('ReflectionsPage', () => {
 
     expect(
       await screen.findByText(
-        'Your profile will take shape as more entries are remembered.',
+        'Nothing has been remembered yet. Finish an entry and it will surface here.',
       ),
     ).toBeInTheDocument();
   });

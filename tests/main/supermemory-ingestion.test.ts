@@ -31,7 +31,7 @@ describe('Supermemory journal ingestion', () => {
     ).ingestEntry(entry);
 
     expect(add).toHaveBeenCalledWith({
-      content: JSON.stringify(entry, null, 2),
+      content: 'Journal entry — 2026-07-11\nReflecting on: What stayed with you?\n\nA quiet moment.',
       containerTag: JOURNAL_MEMORY_CONTAINER,
       customId: entry.id,
       metadata: {
@@ -39,6 +39,20 @@ describe('Supermemory journal ingestion', () => {
         sourceDate: entry.createdAt,
       },
     });
+  });
+
+  it('sends clean prose, not a JSON blob with ids and timestamps', async () => {
+    const add = vi.fn().mockResolvedValue({ id: 'document-id' });
+
+    await createJournalMemoryIngestor(
+      Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
+      preferencesStub(),
+    ).ingestEntry(entry);
+
+    const { content } = add.mock.calls[0]![0] as { content: string };
+    expect(content).not.toContain(entry.id);
+    expect(content).not.toContain('createdAt');
+    expect(content).toContain('A quiet moment.');
   });
 
   it('includes entityContext with the saved name when one is set', async () => {

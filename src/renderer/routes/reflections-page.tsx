@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { formatFullDate } from '@/lib/dates';
 import type { MemoryRefreshResult } from '../../shared/memory';
 
 const emptyMemory: MemoryRefreshResult = {
@@ -58,16 +59,15 @@ export function ReflectionsPage() {
     };
   }, []);
 
-  const profileItems = [...memory.profile.dynamic, ...memory.profile.static];
-
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
       <header className="mb-9 flex items-start justify-between gap-6">
         <div>
           <p className="text-sm text-muted-foreground">Reflections</p>
-          <h1 className="mt-1 text-3xl font-medium">Your remembered patterns</h1>
+          <h1 className="mt-1 text-3xl font-medium">What has been remembered</h1>
           <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Memories extracted from completed entries by Supermemory Local.
+            The individual moments Supermemory Local drew out of your entries, newest
+            first.
           </p>
         </div>
         <Button
@@ -102,34 +102,36 @@ export function ReflectionsPage() {
             </p>
           ) : null}
 
-          <section aria-labelledby="profile-heading">
-            <h2 id="profile-heading" className="text-sm font-medium">
-              Living profile
-            </h2>
-            <p className="mb-4 mt-1 text-xs text-muted-foreground">
-              A synthesized view of who you are, drawn from everything remembered so
-              far.
+          {memory.memories.length > 0 ? (
+            <ul className="space-y-4">
+              {memory.memories.map((item) => (
+                <li
+                  key={item.id}
+                  className="border-l border-border pl-5 writing-text text-xl leading-8"
+                >
+                  {item.text}
+                  {item.sourceDate ? (
+                    <span className="mt-1 block font-sans text-xs text-muted-foreground">
+                      {formatMemoryDate(item.sourceDate)}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nothing has been remembered yet. Finish an entry and it will surface here.
             </p>
-            {profileItems.length > 0 ? (
-              <Card className="bg-card">
-                <CardContent className="space-y-4 p-6">
-                  {profileItems.map((item) => (
-                    <p key={item} className="writing-text text-xl leading-8">
-                      {item}
-                    </p>
-                  ))}
-                </CardContent>
-              </Card>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Your profile will take shape as more entries are remembered.
-              </p>
-            )}
-          </section>
+          )}
         </div>
       )}
     </section>
   );
+}
+
+function formatMemoryDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : formatFullDate(parsed);
 }
 
 function offlineMemory(): MemoryRefreshResult {
