@@ -43,6 +43,12 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: 'New Entry' })).not.toBeInTheDocument();
     expect(screen.queryByText('Today')).not.toBeInTheDocument();
     expect(openingQuestions).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide sidebar' }));
+
+    expect(screen.getByRole('button', { name: 'Show sidebar' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'New Entry' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument();
   });
 
   it('returns to Calendar and reloads entries after finishing a new entry', async () => {

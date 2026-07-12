@@ -74,66 +74,51 @@ export function AppSidebar({
         </Button>
       </div>
 
-      <Button
-        asChild
-        className={cn(
-          'mb-5 w-full justify-start gap-2.5 bg-primary text-primary-foreground hover:bg-primary/90',
-          !isOpen && 'w-9 px-0',
-        )}
-        size={isOpen ? 'default' : 'icon'}
-      >
-        <Link to="/entry/new" aria-label="New Entry" title="New Entry">
-          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span
-            className={cn(
-              'truncate transition-opacity duration-150 ease-out-quart',
-              isOpen ? 'opacity-100' : 'w-0 opacity-0',
-            )}
+      {isOpen && (
+        <>
+          <Button
+            asChild
+            className="mb-5 w-full justify-start gap-2.5 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            New Entry
-          </span>
-        </Link>
-      </Button>
+            <Link to="/entry/new" aria-label="New Entry" title="New Entry">
+              <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">New Entry</span>
+            </Link>
+          </Button>
 
-      <nav className="space-y-1" aria-label="Primary">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            tabIndex={isOpen ? undefined : -1}
-            className={({ isActive }) =>
-              cn(
-                'group relative flex h-9 items-center gap-2 overflow-hidden rounded-md px-2.5 text-sm text-muted-foreground outline-none transition-all duration-150 ease-out-quart hover:translate-x-0.5 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]',
-                isActive && 'translate-x-0 bg-secondary text-foreground',
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span
-                  className={cn(
-                    'absolute inset-y-1 left-0 w-0.5 origin-top scale-y-0 rounded-full bg-primary transition-transform duration-200 ease-out-quart',
-                    isActive && 'scale-y-100',
-                  )}
-                  aria-hidden="true"
-                />
-                <item.icon
-                  className="h-4 w-4 shrink-0 transition-transform duration-150 ease-out-quart group-hover:scale-110"
-                  aria-hidden="true"
-                />
-                <span
-                  className={cn(
-                    'truncate transition-opacity duration-150 ease-out-quart',
-                    isOpen ? 'opacity-100' : 'opacity-0',
-                  )}
-                >
-                  {item.label}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+          <nav className="space-y-1" aria-label="Primary">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    'group relative flex h-9 items-center gap-2 overflow-hidden rounded-md px-2.5 text-sm text-muted-foreground outline-none transition-all duration-150 ease-out-quart hover:translate-x-0.5 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]',
+                    isActive && 'translate-x-0 bg-secondary text-foreground',
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={cn(
+                        'absolute inset-y-1 left-0 w-0.5 origin-top scale-y-0 rounded-full bg-primary transition-transform duration-200 ease-out-quart',
+                        isActive && 'scale-y-100',
+                      )}
+                      aria-hidden="true"
+                    />
+                    <item.icon
+                      className="h-4 w-4 shrink-0 transition-transform duration-150 ease-out-quart group-hover:scale-110"
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        </>
+      )}
     </aside>
   );
 }
