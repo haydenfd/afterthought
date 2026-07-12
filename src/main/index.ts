@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
+import type { SupermemoryConnectionResult } from '../shared/supermemory';
 import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
 import { loadEnvFile } from './load-env';
@@ -8,7 +9,7 @@ import { createMemoryService } from './memory-service';
 import { generateOpeningQuestions } from './opening-questions';
 import { createOpeningQuestionsStorage } from './opening-questions-storage';
 import { createPreferencesStorage } from './preferences-storage';
-import { createSupermemoryClient } from './supermemory-client';
+import { createSupermemoryClient, resolveSupermemoryUrl } from './supermemory-client';
 import { createJournalMemoryIngestor } from './supermemory-ingestion';
 
 loadEnvFile();
@@ -16,12 +17,6 @@ loadEnvFile();
 app.setName('Afterthought');
 
 const isDevelopment = !app.isPackaged;
-
-interface SupermemoryConnectionResult {
-  status: 'connected' | 'offline';
-  url: string;
-  message?: string;
-}
 
 async function checkSupermemoryConnection(
   value: unknown,
@@ -99,15 +94,16 @@ function createMainWindow(): void {
   }
 }
 
-void app.whenReady().then(() => {
+void app.whenReady().then(async () => {
   const entryStorage = createEntryStorage(join(app.getPath('userData'), 'entries'));
   const preferencesStorage = createPreferencesStorage(
     join(app.getPath('userData'), 'preferences.json'),
   );
+  const preferences = await preferencesStorage.getPreferences();
   const openingQuestionsStorage = createOpeningQuestionsStorage(
     join(app.getPath('userData'), 'opening-questions.json'),
   );
-  const supermemoryClient = createSupermemoryClient();
+  const supermemoryClient = createSupermemoryClient(resolveSupermemoryUrl(preferences));
   const memory = createMemoryService(supermemoryClient);
   const journal = createJournalService(
     entryStorage,

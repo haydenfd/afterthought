@@ -1,6 +1,8 @@
 import { Supermemory } from 'supermemory';
 
-export const SUPERMEMORY_LOCAL_URL = 'http://localhost:6767';
+import type { Preferences } from '../shared/preferences';
+import { SUPERMEMORY_LOCAL_URL } from '../shared/supermemory';
+
 export const JOURNAL_MEMORY_CONTAINER = 'afterthought:user:local';
 
 export interface SupermemorySearchResult {
@@ -35,11 +37,18 @@ export interface SupermemoryClient {
   post<T>(path: string, options: { body: Record<string, unknown> }): Promise<T>;
 }
 
-export function createSupermemoryClient(): Promise<SupermemoryClient> {
+export function createSupermemoryClient(
+  baseURL: string = SUPERMEMORY_LOCAL_URL,
+): Promise<SupermemoryClient> {
   return Supermemory.local({
     start: false,
-    baseURL: SUPERMEMORY_LOCAL_URL,
+    baseURL,
     timeout: 5_000,
     maxRetries: 0,
   });
+}
+
+export function resolveSupermemoryUrl(preferences: Preferences): string {
+  const configuredUrl = preferences.supermemoryUrl?.trim();
+  return configuredUrl || SUPERMEMORY_LOCAL_URL;
 }
