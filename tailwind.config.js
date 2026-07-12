@@ -40,20 +40,6 @@ module.exports = {
         md: '6px',
         sm: '4px',
       },
-      keyframes: {
-        'sidebar-in': {
-          from: { transform: 'translateX(-8px)', opacity: '0' },
-          to: { transform: 'translateX(0)', opacity: '1' },
-        },
-        'rail-in': {
-          from: { transform: 'translateX(-4px)', opacity: '0' },
-          to: { transform: 'translateX(0)', opacity: '1' },
-        },
-      },
-      animation: {
-        'sidebar-in': 'sidebar-in 180ms ease-out',
-        'rail-in': 'rail-in 150ms ease-out',
-      },
       transitionTimingFunction: {
         'out-quart': 'cubic-bezier(0.25, 1, 0.5, 1)',
       },
