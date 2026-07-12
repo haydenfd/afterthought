@@ -1,7 +1,7 @@
 import { Circle, LoaderCircle } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { type SupermemoryConnectionStatus } from '@/lib/supermemory';
+import type { SupermemoryConnectionStatus } from '../../../shared/supermemory';
 
 const statusLabel: Record<SupermemoryConnectionStatus, string> = {
   checking: 'Checking',

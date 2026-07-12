@@ -9,11 +9,11 @@ import {
 } from 'react';
 
 import {
-  createAfterthoughtSupermemoryClient,
-  DEFAULT_SUPERMEMORY_URL,
-  type ConnectionCheckResult,
+  SUPERMEMORY_LOCAL_URL,
+  type SupermemoryConnectionResult,
   type SupermemoryConnectionStatus,
-} from '@/lib/supermemory';
+} from '../../shared/supermemory';
+type ConnectionCheckResult = SupermemoryConnectionResult & { checkedAt: Date };
 
 interface SupermemoryState {
   baseUrl: string;
@@ -27,7 +27,7 @@ interface SupermemoryState {
 const SupermemoryContext = createContext<SupermemoryState | null>(null);
 
 export function SupermemoryProvider({ children }: { children: ReactNode }) {
-  const [baseUrl, setBaseUrlState] = useState(DEFAULT_SUPERMEMORY_URL);
+  const [baseUrl, setBaseUrlState] = useState(SUPERMEMORY_LOCAL_URL);
   const [status, setStatus] = useState<SupermemoryConnectionStatus>('checking');
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
@@ -55,25 +55,24 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
 
   const testConnection = useCallback(async (): Promise<ConnectionCheckResult> => {
     setStatus('checking');
-    const result = await createAfterthoughtSupermemoryClient(baseUrl).checkConnection();
+    const result = await window.afterthought.supermemory.checkConnection(baseUrl);
+    const checkedAt = new Date();
     setStatus(result.status);
-    setLastCheckedAt(result.checkedAt);
+    setLastCheckedAt(checkedAt);
     setConnectionMessage(result.message ?? null);
-    return result;
+    return { ...result, checkedAt };
   }, [baseUrl]);
 
   useEffect(() => {
     let isMounted = true;
 
-    void createAfterthoughtSupermemoryClient(baseUrl)
-      .checkConnection()
-      .then((result) => {
-        if (isMounted) {
-          setStatus(result.status);
-          setLastCheckedAt(result.checkedAt);
-          setConnectionMessage(result.message ?? null);
-        }
-      });
+    void window.afterthought.supermemory.checkConnection(baseUrl).then((result) => {
+      if (isMounted) {
+        setStatus(result.status);
+        setLastCheckedAt(new Date());
+        setConnectionMessage(result.message ?? null);
+      }
+    });
 
     return () => {
       isMounted = false;

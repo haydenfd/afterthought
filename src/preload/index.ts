@@ -4,6 +4,7 @@ import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-en
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
 import type { OpeningQuestionsResult } from '../shared/reflection';
+import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
 const afterthoughtApi = {
   platform: process.platform,
@@ -12,7 +13,7 @@ const afterthoughtApi = {
     electron: process.versions.electron,
   },
   supermemory: {
-    checkConnection: (url: string) =>
+    checkConnection: (url: string): Promise<SupermemoryConnectionResult> =>
       ipcRenderer.invoke('supermemory:check-connection', url),
   },
   entries: {

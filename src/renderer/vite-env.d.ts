@@ -4,6 +4,7 @@ import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-en
 import type { MemoryRefreshResult } from '../shared/memory';
 import type { Preferences } from '../shared/preferences';
 import type { OpeningQuestionsResult } from '../shared/reflection';
+import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
 declare global {
   interface Window {
@@ -14,11 +15,7 @@ declare global {
         electron: string | undefined;
       };
       supermemory: {
-        checkConnection: (url: string) => Promise<{
-          status: 'connected' | 'offline';
-          url: string;
-          message?: string;
-        }>;
+        checkConnection: (url: string) => Promise<SupermemoryConnectionResult>;
       };
       entries: {
         create: (input: CreateJournalEntryInput) => Promise<JournalEntry>;
