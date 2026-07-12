@@ -132,9 +132,13 @@ void app.whenReady().then(() => {
       throw new Error('Invalid preferences update.');
     }
 
-    const { userName } = update as Record<string, unknown>;
+    const { userName, appearance, supermemoryUrl } = update as Record<string, unknown>;
     return preferencesStorage.setPreferences({
       ...(typeof userName === 'string' ? { userName } : {}),
+      ...(appearance === 'light' || appearance === 'dark' || appearance === 'system'
+        ? { appearance }
+        : {}),
+      ...(typeof supermemoryUrl === 'string' ? { supermemoryUrl } : {}),
     });
   });
   createMainWindow();

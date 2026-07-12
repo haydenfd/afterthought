@@ -1,13 +1,16 @@
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react';
 
-export type Appearance = 'light' | 'dark' | 'system';
+import type { Appearance } from '../../shared/preferences';
+
+export type { Appearance };
 
 interface ThemeState {
   appearance: Appearance;
@@ -17,7 +20,26 @@ interface ThemeState {
 const ThemeContext = createContext<ThemeState | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [appearance, setAppearance] = useState<Appearance>('system');
+  const [appearance, setAppearanceState] = useState<Appearance>('system');
+
+  const setAppearance = useCallback((next: Appearance): void => {
+    setAppearanceState(next);
+    void window.afterthought.preferences.set({ appearance: next });
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.preferences.get().then((preferences) => {
+      if (isCurrent && preferences.appearance) {
+        setAppearanceState(preferences.appearance);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -46,7 +68,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<ThemeState>(
     () => ({ appearance, setAppearance }),
-    [appearance],
+    [appearance, setAppearance],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

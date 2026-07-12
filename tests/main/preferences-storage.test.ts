@@ -45,6 +45,32 @@ describe('preferences storage', () => {
     expect(await storage.getPreferences()).toEqual({ userName: 'Alex' });
   });
 
+  it('persists appearance and supermemoryUrl alongside userName', async () => {
+    const storage = createPreferencesStorage(await createTemporaryPreferencesPath());
+
+    const result = await storage.setPreferences({
+      appearance: 'dark',
+      supermemoryUrl: 'http://localhost:7000',
+    });
+
+    expect(result).toEqual({
+      appearance: 'dark',
+      supermemoryUrl: 'http://localhost:7000',
+    });
+    expect(await storage.getPreferences()).toEqual({
+      appearance: 'dark',
+      supermemoryUrl: 'http://localhost:7000',
+    });
+  });
+
+  it('rejects a malformed appearance value and falls back to an empty object', async () => {
+    const preferencesPath = await createTemporaryPreferencesPath();
+    await writeFile(preferencesPath, JSON.stringify({ appearance: 'purple' }), 'utf8');
+    const storage = createPreferencesStorage(preferencesPath);
+
+    expect(await storage.getPreferences()).toEqual({});
+  });
+
   it('falls back to an empty object for malformed JSON', async () => {
     const preferencesPath = await createTemporaryPreferencesPath();
     await writeFile(preferencesPath, '{not json', 'utf8');

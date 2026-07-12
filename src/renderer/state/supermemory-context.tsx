@@ -32,10 +32,25 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.preferences.get().then((preferences) => {
+      if (isCurrent && preferences.supermemoryUrl) {
+        setBaseUrlState(preferences.supermemoryUrl);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   const setBaseUrl = useCallback((value: string): void => {
     setBaseUrlState(value);
     setStatus('checking');
     setConnectionMessage(null);
+    void window.afterthought.preferences.set({ supermemoryUrl: value });
   }, []);
 
   const testConnection = useCallback(async (): Promise<ConnectionCheckResult> => {

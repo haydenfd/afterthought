@@ -65,36 +65,31 @@ export function SettingsPage() {
       <div className="space-y-5">
         <Card>
           <CardHeader>
-            <CardTitle>Your name</CardTitle>
-            <CardDescription>
-              Used to personalize memories Supermemory extracts from new entries.
-              Applies to entries saved after this is set.
-            </CardDescription>
+            <CardTitle>Name</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="user-name">Name</Label>
-              <Input
-                id="user-name"
-                value={userName}
-                disabled={!isNameLoaded}
-                onChange={(event) => setUserName(event.target.value)}
-                onBlur={() => {
-                  void window.afterthought.preferences.set({
-                    userName: userName.trim(),
-                  });
-                }}
-                placeholder="Your name"
-                spellCheck={false}
-              />
-            </div>
+            <Input
+              id="user-name"
+              value={userName}
+              disabled={!isNameLoaded}
+              onChange={(event) => setUserName(event.target.value)}
+              onBlur={() => {
+                void window.afterthought.preferences.set({
+                  userName: userName.trim(),
+                });
+              }}
+              placeholder="e.g. Jane Smith"
+              spellCheck={false}
+            />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
-            <CardDescription>Session-only until persistence is added.</CardDescription>
+            <CardDescription>
+              Applies immediately and is remembered next time you open the app.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-3">
@@ -119,9 +114,9 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Supermemory Local</CardTitle>
+            <CardTitle>Supermemory Client</CardTitle>
             <CardDescription>
-              Default local URL for the placeholder memory client.
+              Saved locally; used to connect the next time the app starts.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

@@ -13,3 +13,31 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+Object.defineProperty(window, 'afterthought', {
+  writable: true,
+  configurable: true,
+  value: {
+    platform: 'test',
+    versions: { chrome: undefined, electron: undefined },
+    supermemory: {
+      checkConnection: vi.fn().mockResolvedValue({ status: 'offline', url: '' }),
+    },
+    entries: {
+      create: vi.fn(),
+      get: vi.fn().mockResolvedValue(null),
+      list: vi.fn().mockResolvedValue([]),
+    },
+    memory: {
+      refresh: vi.fn().mockResolvedValue({
+        status: 'offline',
+        profile: { static: [], dynamic: [] },
+        memories: [],
+      }),
+    },
+    preferences: {
+      get: vi.fn().mockResolvedValue({}),
+      set: vi.fn().mockResolvedValue({}),
+    },
+  },
+});

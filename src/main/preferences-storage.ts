@@ -49,13 +49,20 @@ function parsePreferences(value: string): Preferences {
   }
 }
 
+const appearanceValues = ['light', 'dark', 'system'];
+
 function isPreferences(value: unknown): value is Preferences {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
   const record = value as Record<string, unknown>;
-  return record.userName === undefined || typeof record.userName === 'string';
+  return (
+    (record.userName === undefined || typeof record.userName === 'string') &&
+    (record.appearance === undefined ||
+      appearanceValues.includes(record.appearance as string)) &&
+    (record.supermemoryUrl === undefined || typeof record.supermemoryUrl === 'string')
+  );
 }
 
 function isMissingFileError(error: unknown): boolean {
