@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ArrowLeft, Check, LoaderCircle, MoveDown } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type AnimationEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useBeforeUnload, useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,9 @@ export function NewEntryPage() {
   const deeperRequestInProgress = useRef(false);
   const hasRequestedPrompt = useRef(false);
   const bypassPopGuard = useRef(false);
+  const hasCompletedClose = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [aiQuestions, setAiQuestions] = useState<[string, string] | null>(null);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
@@ -121,10 +123,29 @@ export function NewEntryPage() {
     const timeoutId = window.setTimeout(() => {
       resetDraft();
       void navigate('/calendar', { replace: true, state: { entrySaved: true } });
-    }, 900);
+    }, 2200);
 
     return () => window.clearTimeout(timeoutId);
   }, [isFinished, navigate, resetDraft]);
+
+  const completeClose = useCallback(() => {
+    if (hasCompletedClose.current) {
+      return;
+    }
+
+    hasCompletedClose.current = true;
+    finishEntry();
+  }, [finishEntry]);
+
+  useEffect(() => {
+    if (!isClosing) {
+      return;
+    }
+
+    // Animation events can be skipped if the window is backgrounded mid-close.
+    const fallbackId = window.setTimeout(completeClose, 1400);
+    return () => window.clearTimeout(fallbackId);
+  }, [completeClose, isClosing]);
 
   const returnToCalendar = useCallback(() => {
     if (!isFinished && hasUnsavedContent && !window.confirm(discardMessage)) {
@@ -137,31 +158,33 @@ export function NewEntryPage() {
 
   if (isFinished) {
     return (
-      <section className="mx-auto flex min-h-screen max-w-4xl flex-col px-10 py-12">
+      <section className="reflection-complete-page mx-auto flex min-h-screen max-w-4xl flex-col px-10 py-12">
         <button
           type="button"
-          className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="reflection-complete-back inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           onClick={returnToCalendar}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Return to Calendar
         </button>
 
-        <div className="mt-20 max-w-2xl rounded-lg border border-border bg-card px-6 py-6">
-          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-md bg-accent text-accent-foreground">
+        <div
+          className="reflection-complete-content my-auto max-w-2xl pb-24"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="reflection-complete-mark mb-7 flex h-11 w-11 items-center justify-center rounded-full border border-primary/25 bg-accent/70 text-accent-foreground">
             <Check className="h-5 w-5" aria-hidden="true" />
           </div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Reflection complete for now
-          </p>
-          <h2 className="mt-4 writing-text text-3xl leading-[1.25]">
+          <h2 className="writing-text text-4xl leading-[1.2]">That page is closed.</h2>
+          <p className="mt-5 writing-text text-xl leading-8 text-muted-foreground">
             Your reflection has been saved.
-          </h2>
-          <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            Returning you to Calendar now.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground/75">
+            Taking you back to your calendar.
           </p>
           <Button
-            className="mt-8"
+            className="mt-9"
             variant="outline"
             type="button"
             onClick={returnToCalendar}
@@ -200,7 +223,7 @@ export function NewEntryPage() {
           : {}),
         ...(deeperThemes.length > 0 ? { themes: deeperThemes } : {}),
       });
-      finishEntry();
+      setIsClosing(true);
     } catch {
       setSaveError('Your entry could not be saved. Please try again.');
     } finally {
@@ -242,8 +265,31 @@ export function NewEntryPage() {
     }
   }
 
+  function handleCloseAnimationEnd(event: AnimationEvent<HTMLElement>): void {
+    const animationTarget = event.target;
+
+    if (
+      !isClosing ||
+      !(animationTarget instanceof HTMLElement) ||
+      !animationTarget.classList.contains('reflection-page')
+    ) {
+      return;
+    }
+
+    completeClose();
+  }
+
   return (
-    <section className="min-h-screen bg-background px-6 py-6 text-foreground sm:px-10 sm:py-10">
+    <section
+      className={cn(
+        'reflection-page min-h-screen bg-background px-6 py-6 text-foreground sm:px-10 sm:py-10',
+        isClosing && 'reflection-page--closing',
+      )}
+      data-testid="reflection-page"
+      aria-busy={isSaving || isClosing}
+      onAnimationEnd={handleCloseAnimationEnd}
+    >
+      <div className="reflection-crumple-creases" aria-hidden="true" />
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
         <header className="mb-14 flex items-start justify-between gap-8">
           <button
@@ -362,7 +408,9 @@ export function NewEntryPage() {
                   <Button
                     type="button"
                     size="sm"
-                    disabled={isSaving || isGeneratingDeeper || !draft.trim()}
+                    disabled={
+                      isSaving || isClosing || isGeneratingDeeper || !draft.trim()
+                    }
                     onClick={() => void handleFinishEntry()}
                   >
                     {isSaving ? 'Finishing…' : 'Finish'}

@@ -19,6 +19,9 @@
     --border: 20 26% 81%;
     --input: 20 26% 81%;
     --ring: 166 20% 39%;
+    --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --motion-ease-crumple: cubic-bezier(0.65, 0, 0.35, 1);
   }
 
   .dark {
@@ -96,5 +99,187 @@
 @layer utilities {
   .writing-text {
     font-family: 'Iowan Old Style', Palatino, Georgia, serif;
+  }
+}
+
+.reflection-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transform-origin: 50% 54%;
+}
+
+.reflection-crumple-creases {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(
+      31deg,
+      transparent 35.5%,
+      hsl(var(--foreground) / 0.1) 36%,
+      transparent 36.5%
+    ),
+    linear-gradient(
+      143deg,
+      transparent 48.5%,
+      hsl(var(--card) / 0.65) 49%,
+      transparent 49.5%
+    ),
+    linear-gradient(
+      76deg,
+      transparent 58.5%,
+      hsl(var(--foreground) / 0.08) 59%,
+      transparent 59.5%
+    ),
+    linear-gradient(
+      168deg,
+      transparent 69.5%,
+      hsl(var(--card) / 0.6) 70%,
+      transparent 70.5%
+    );
+}
+
+.reflection-page--closing {
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: reflection-page-crumple 1250ms var(--motion-ease-crumple) both;
+}
+
+.reflection-page--closing .reflection-crumple-creases {
+  animation: reflection-creases-arrive 1250ms var(--motion-ease-crumple) both;
+}
+
+.reflection-complete-page {
+  background: hsl(var(--background));
+}
+
+.reflection-complete-back {
+  animation: reflection-complete-enter 280ms var(--motion-ease-out) 80ms both;
+}
+
+.reflection-complete-content {
+  animation: reflection-complete-enter 420ms var(--motion-ease-out) both;
+}
+
+.reflection-complete-mark {
+  animation: reflection-complete-mark 420ms var(--motion-ease-out) 70ms both;
+}
+
+@keyframes reflection-page-crumple {
+  0% {
+    opacity: 1;
+    transform: perspective(1200px) translate3d(0, 0, 0) scale3d(1, 1, 1) rotateX(0deg)
+      rotateY(0deg) rotateZ(0deg) skew(0deg, 0deg);
+  }
+
+  20% {
+    opacity: 1;
+    transform: perspective(1200px) translate3d(0, 0, 0) scale3d(0.985, 0.99, 1)
+      rotateX(-1deg) rotateY(1deg) rotateZ(-0.35deg) skew(0.4deg, -0.2deg);
+  }
+
+  44% {
+    opacity: 0.98;
+    transform: perspective(1200px) translate3d(-1%, 0, 0) scale3d(0.88, 0.93, 1)
+      rotateX(4deg) rotateY(-5deg) rotateZ(1.1deg) skew(-1.5deg, 0.9deg);
+  }
+
+  68% {
+    opacity: 0.9;
+    transform: perspective(1200px) translate3d(2%, 2%, 0) scale3d(0.62, 0.72, 1)
+      rotateX(-9deg) rotateY(11deg) rotateZ(-2.4deg) skew(2.4deg, -1.8deg);
+  }
+
+  84% {
+    opacity: 0.65;
+    transform: perspective(1200px) translate3d(-1%, 5%, 0) scale3d(0.29, 0.38, 1)
+      rotateX(15deg) rotateY(-18deg) rotateZ(5deg) skew(-4deg, 3deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: perspective(1200px) translate3d(2%, 12%, 0) scale3d(0.035, 0.055, 1)
+      rotateX(-24deg) rotateY(28deg) rotateZ(-9deg) skew(7deg, -5deg);
+  }
+}
+
+@keyframes reflection-creases-arrive {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale3d(1, 1, 1) rotate(0deg);
+  }
+
+  52% {
+    opacity: 0.28;
+    transform: scale3d(1.04, 1.02, 1) rotate(-0.5deg);
+  }
+
+  100% {
+    opacity: 0.42;
+    transform: scale3d(1.12, 1.08, 1) rotate(1deg);
+  }
+}
+
+@keyframes reflection-complete-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes reflection-complete-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.92) rotate(-8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reflection-page--closing {
+    animation: reflection-page-fade-out 220ms var(--motion-ease-out) both;
+  }
+
+  .reflection-page--closing .reflection-crumple-creases {
+    animation: none;
+  }
+
+  .reflection-complete-back,
+  .reflection-complete-content,
+  .reflection-complete-mark {
+    animation: reflection-complete-fade 200ms var(--motion-ease-out) both;
+  }
+}
+
+@keyframes reflection-page-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes reflection-complete-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }

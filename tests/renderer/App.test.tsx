@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { AppProviders } from '@/app-providers';
@@ -90,11 +90,19 @@ describe('App', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
+    const page = screen.getByTestId('reflection-page');
+    await waitFor(() => expect(page).toHaveClass('reflection-page--closing'));
+    fireEvent.animationEnd(page, { animationName: 'reflection-page-crumple' });
+
     expect(
-      await screen.findByText('Your reflection has been saved.'),
+      await screen.findByText(
+        'Your reflection has been saved.',
+        {},
+        { timeout: 1_700 },
+      ),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText('1 entry this month', {}, { timeout: 2_000 }),
+      await screen.findByText('1 entry this month', {}, { timeout: 3_000 }),
     ).toBeInTheDocument();
     expect(list).toHaveBeenCalledTimes(1);
   });

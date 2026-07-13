@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { NewEntryPage } from '@/routes/new-entry-page';
@@ -153,6 +153,8 @@ describe('NewEntryPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
+    await completeCloseAnimation();
+
     expect(
       await screen.findByText('Your reflection has been saved.'),
     ).toBeInTheDocument();
@@ -226,6 +228,8 @@ describe('NewEntryPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
 
+    await completeCloseAnimation();
+
     expect(
       await screen.findByText('Your reflection has been saved.'),
     ).toBeInTheDocument();
@@ -249,6 +253,16 @@ describe('NewEntryPage', () => {
     });
   });
 });
+
+async function completeCloseAnimation(): Promise<void> {
+  const page = screen.getByTestId('reflection-page');
+  await waitFor(() => expect(page).toHaveClass('reflection-page--closing'));
+  fireEvent.animationEnd(page, { animationName: 'reflection-page-crumple' });
+  await waitFor(
+    () => expect(screen.getByText('That page is closed.')).toBeInTheDocument(),
+    { timeout: 1700 },
+  );
+}
 
 function renderPage(): void {
   render(
