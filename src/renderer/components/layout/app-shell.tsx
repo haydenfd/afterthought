@@ -13,7 +13,7 @@ export function AppShell() {
         onCollapse={() => setIsSidebarOpen(false)}
         onExpand={() => setIsSidebarOpen(true)}
       />
-      <main className="min-w-0 flex-1 overflow-y-auto duration-200 animate-in fade-in">
+      <main className="min-w-0 flex-1 overflow-y-auto duration-200 ease-out-quart animate-in fade-in motion-reduce:animate-none">
         <Outlet />
       </main>
     </div>

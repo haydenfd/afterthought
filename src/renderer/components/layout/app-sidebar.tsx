@@ -90,7 +90,7 @@ export function AppSidebar({
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    'group relative flex h-9 items-center gap-2 overflow-hidden rounded-md px-2.5 text-sm text-muted-foreground outline-none transition-all duration-150 ease-out-quart hover:translate-x-0.5 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]',
+                    'group relative flex h-9 items-center gap-2 overflow-hidden rounded-md px-2.5 text-sm text-muted-foreground outline-none transition-[color,background-color,transform] duration-150 ease-out-quart hover:translate-x-0.5 hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]',
                     isActive && 'translate-x-0 bg-secondary text-foreground',
                   )
                 }
