@@ -23,7 +23,9 @@ export function createJournalMemoryIngestor(
         customId: entry.id,
         metadata: {
           source: 'afterthought-journal',
+          entryId: entry.id,
           sourceDate: entry.createdAt,
+          localDate: entry.createdAt.slice(0, 10),
           ...(entry.themes?.length ? { themes: entry.themes.join(', ') } : {}),
         },
         ...(userName ? { entityContext: `The user's name is ${userName}.` } : {}),

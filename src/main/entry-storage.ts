@@ -8,6 +8,7 @@ import type {
   JournalEntry,
 } from '../shared/journal-entry';
 import {
+  type MemoryEvidenceItem,
   reflectionStrategies,
   type OpeningQuestions,
   type ReflectionProvenance,
@@ -57,6 +58,7 @@ export function createEntryStorage(entriesDirectory: string): EntryStorage {
     const prompt = typeof input.prompt === 'string' ? input.prompt : '';
     const title = validateTitle(input.title);
     const openingQuestions = validateOpeningQuestions(input.openingQuestions);
+    const openingContext = validateMemoryEvidenceItems(input.openingContext);
     const deeperReflection = validateDeeperReflection(input.deeperReflection);
     const themes = normalizeThemes(input.themes);
     const timestamp = new Date().toISOString();
@@ -68,6 +70,7 @@ export function createEntryStorage(entriesDirectory: string): EntryStorage {
       content,
       ...(title === undefined ? {} : { title }),
       ...(openingQuestions === undefined ? {} : { openingQuestions }),
+      ...(openingContext.length === 0 ? {} : { openingContext }),
       ...(deeperReflection === undefined ? {} : { deeperReflection }),
       ...(themes.length === 0 ? {} : { themes }),
     };
@@ -194,23 +197,88 @@ function validateProvenance(value: unknown): ReflectionProvenance | undefined {
   }
 
   const provenance = value as Record<string, unknown>;
+  if (
+    provenance.sourceMemoryIds !== undefined &&
+    !Array.isArray(provenance.sourceMemoryIds)
+  ) {
+    throw new Error('Reflection provenance is invalid.');
+  }
+
   const sourceMemoryIds: unknown[] = Array.isArray(provenance.sourceMemoryIds)
     ? provenance.sourceMemoryIds
     : [];
+  const sourceMemories = validateMemoryEvidenceItems(provenance.sourceMemories);
   if (
     typeof provenance.strategy !== 'string' ||
     !reflectionStrategies.includes(
       provenance.strategy as (typeof reflectionStrategies)[number],
     ) ||
-    !Array.isArray(provenance.sourceMemoryIds) ||
     sourceMemoryIds.some((id) => typeof id !== 'string')
   ) {
     throw new Error('Reflection provenance is invalid.');
   }
 
+  const normalizedSourceMemoryIds = [
+    ...new Set([
+      ...stringArray(sourceMemoryIds),
+      ...sourceMemories.map(({ id }) => id),
+    ]),
+  ];
+
   return {
     strategy: provenance.strategy as ReflectionProvenance['strategy'],
-    sourceMemoryIds: [...new Set(sourceMemoryIds as string[])],
+    sourceMemoryIds: normalizedSourceMemoryIds,
+    ...(sourceMemories.length === 0 ? {} : { sourceMemories }),
+  };
+}
+
+function validateMemoryEvidenceItems(value: unknown): MemoryEvidenceItem[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('Memory evidence is invalid.');
+  }
+
+  const memories = new Map<string, MemoryEvidenceItem>();
+  for (const candidate of value) {
+    const memory = validateMemoryEvidenceItem(candidate);
+    memories.set(memory.id, memory);
+  }
+
+  return [...memories.values()];
+}
+
+function validateMemoryEvidenceItem(value: unknown): MemoryEvidenceItem {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Memory evidence is invalid.');
+  }
+
+  const record = value as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id.trim() : '';
+  const text = typeof record.text === 'string' ? record.text.trim() : '';
+  const similarity =
+    typeof record.similarity === 'number' && Number.isFinite(record.similarity)
+      ? record.similarity
+      : NaN;
+  if (!id || !text || !Number.isFinite(similarity)) {
+    throw new Error('Memory evidence is invalid.');
+  }
+
+  const sourceDocumentIds = stringArray(record.sourceDocumentIds);
+  const sourceEntryIds = stringArray(record.sourceEntryIds);
+  const sourceDate =
+    typeof record.sourceDate === 'string' && record.sourceDate.trim()
+      ? record.sourceDate.trim()
+      : undefined;
+
+  return {
+    id,
+    text,
+    similarity,
+    ...(sourceDate === undefined ? {} : { sourceDate }),
+    sourceDocumentIds,
+    sourceEntryIds,
   };
 }
 
@@ -245,6 +313,8 @@ function isJournalEntry(value: unknown): value is JournalEntry {
     (entry.title === undefined || typeof entry.title === 'string') &&
     (entry.openingQuestions === undefined ||
       validateStoredOpeningQuestions(entry.openingQuestions)) &&
+    (entry.openingContext === undefined ||
+      isStoredMemoryEvidenceItems(entry.openingContext)) &&
     (entry.deeperReflection === undefined ||
       validateStoredDeeperReflection(entry.deeperReflection)) &&
     (entry.themes === undefined ||
@@ -286,13 +356,55 @@ function isStoredProvenance(value: unknown): boolean {
     reflectionStrategies.includes(
       provenance.strategy as (typeof reflectionStrategies)[number],
     ) &&
-    Array.isArray(provenance.sourceMemoryIds) &&
-    provenance.sourceMemoryIds.every((id) => typeof id === 'string')
+    (provenance.sourceMemoryIds === undefined ||
+      (Array.isArray(provenance.sourceMemoryIds) &&
+        provenance.sourceMemoryIds.every((id) => typeof id === 'string'))) &&
+    (provenance.sourceMemories === undefined ||
+      isStoredMemoryEvidenceItems(provenance.sourceMemories))
+  );
+}
+
+function isStoredMemoryEvidenceItems(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every((candidate) => {
+      if (!candidate || typeof candidate !== 'object') {
+        return false;
+      }
+
+      const record = candidate as Record<string, unknown>;
+      return (
+        typeof record.id === 'string' &&
+        record.id.trim().length > 0 &&
+        typeof record.text === 'string' &&
+        record.text.trim().length > 0 &&
+        typeof record.similarity === 'number' &&
+        Number.isFinite(record.similarity) &&
+        (record.sourceDate === undefined || typeof record.sourceDate === 'string') &&
+        Array.isArray(record.sourceDocumentIds) &&
+        record.sourceDocumentIds.every((id) => typeof id === 'string') &&
+        Array.isArray(record.sourceEntryIds) &&
+        record.sourceEntryIds.every((id) => typeof id === 'string')
+      );
+    })
   );
 }
 
 function isIsoTimestamp(value: unknown): value is string {
   return typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [
+        ...new Set(
+          value
+            .filter((item): item is string => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
 }
 
 function isMissingFileError(error: unknown): boolean {

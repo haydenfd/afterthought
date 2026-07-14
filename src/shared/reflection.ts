@@ -1,5 +1,14 @@
 export type OpeningQuestions = [string, string];
 
+export type MemoryEvidenceItem = {
+  id: string;
+  text: string;
+  similarity: number;
+  sourceDate?: string;
+  sourceDocumentIds: string[];
+  sourceEntryIds: string[];
+};
+
 export const reflectionStrategies = [
   'deepen-current-thought',
   'revisit-unresolved-thread',
@@ -17,16 +26,19 @@ export type ReflectionStrategy = (typeof reflectionStrategies)[number];
 export type ReflectionProvenance = {
   strategy: ReflectionStrategy;
   sourceMemoryIds: string[];
+  sourceMemories?: MemoryEvidenceItem[];
 };
 
 export type OpeningQuestionsBundle = {
   questions: OpeningQuestions;
   generatedAt: string;
+  sourceMemories?: MemoryEvidenceItem[];
 };
 
 export type OpeningQuestionsResult = {
   questions: OpeningQuestions | null;
   source: 'ai' | 'fallback';
+  sourceMemories?: MemoryEvidenceItem[];
 };
 
 export type DeeperQuestionInput = {

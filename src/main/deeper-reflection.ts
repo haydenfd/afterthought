@@ -1,5 +1,6 @@
 import type { JournalEntry } from '../shared/journal-entry';
 import {
+  type MemoryEvidenceItem,
   reflectionStrategies,
   type DeeperQuestionInput,
   type DeeperQuestionResult,
@@ -7,6 +8,7 @@ import {
 } from '../shared/reflection';
 import type { EntryStorage } from './entry-storage';
 import { callGroq } from './groq-client';
+import { retrieveMemoryEvidence } from './memory-evidence';
 import { inferFallbackThemes, normalizeThemes } from './reflection-themes';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 
@@ -22,13 +24,6 @@ interface ReflectionPlan {
   themes: string[];
   retrievalQueries: string[];
   candidateStrategies: ReflectionStrategy[];
-}
-
-interface MemoryEvidence {
-  id: string;
-  text: string;
-  similarity: number;
-  sourceDocumentIds: string[];
 }
 
 const planningPrompt = `Interpret a private journal response so another model can ask one useful follow-up question. Return a compact plan, not advice and not a question.
@@ -140,7 +135,7 @@ function buildQuestionContext(
   plan: ReflectionPlan,
   recentEntries: JournalEntry[],
   recentlyAsked: string[],
-  evidence: MemoryEvidence[],
+  evidence: MemoryEvidenceItem[],
   profile: { static: string[]; dynamic: string[] } | null,
 ): string {
   const parts = [
@@ -202,61 +197,16 @@ function collectRecentQuestions(entries: JournalEntry[]): string[] {
 async function retrieveEvidence(
   client: SupermemoryClient,
   queries: string[],
-): Promise<MemoryEvidence[]> {
+): Promise<MemoryEvidenceItem[]> {
   const selectedQueries = queries.slice(0, queryLimit);
   if (selectedQueries.length === 0) {
     return [];
   }
 
-  const responses = await Promise.allSettled(
-    selectedQueries.map((query) =>
-      client.search.memories({
-        q: query,
-        containerTag: JOURNAL_MEMORY_CONTAINER,
-        limit: resultLimit,
-        rerank: true,
-        include: { documents: true },
-      }),
-    ),
-  );
-  const evidence = new Map<string, MemoryEvidence>();
-
-  for (const response of responses) {
-    if (response.status === 'rejected') {
-      continue;
-    }
-    for (const result of response.value.results) {
-      if (
-        typeof result.memory !== 'string' ||
-        !result.memory.trim() ||
-        !Number.isFinite(result.similarity) ||
-        result.similarity < minimumEvidenceSimilarity
-      ) {
-        continue;
-      }
-
-      const existing = evidence.get(result.id);
-      const sourceDocumentIds = (result.documents ?? [])
-        .map((document) => document.id)
-        .filter(Boolean);
-      if (!existing || result.similarity > existing.similarity) {
-        evidence.set(result.id, {
-          id: result.id,
-          text: result.memory.trim(),
-          similarity: result.similarity,
-          sourceDocumentIds,
-        });
-      } else if (sourceDocumentIds.length > 0) {
-        existing.sourceDocumentIds = [
-          ...new Set([...existing.sourceDocumentIds, ...sourceDocumentIds]),
-        ];
-      }
-    }
-  }
-
-  return [...evidence.values()]
-    .sort((left, right) => right.similarity - left.similarity)
-    .slice(0, resultLimit * queryLimit);
+  return retrieveMemoryEvidence(client, selectedQueries, {
+    limit: resultLimit,
+    minimumSimilarity: minimumEvidenceSimilarity,
+  }).then((evidence) => evidence.slice(0, resultLimit * queryLimit));
 }
 
 async function retrieveProfile(
@@ -315,7 +265,7 @@ function parseGeneratedQuestion(
   value: string,
   input: DeeperQuestionInput,
   recentlyAsked: string[],
-  evidence: MemoryEvidence[],
+  evidence: MemoryEvidenceItem[],
 ): Omit<DeeperQuestionResult, 'themes' | 'source'> | null {
   try {
     const parsed = asRecord(JSON.parse(value));
@@ -353,6 +303,7 @@ function parseGeneratedQuestion(
       provenance: {
         strategy: parsed.strategy as ReflectionStrategy,
         sourceMemoryIds: [...new Set(sourceMemoryIds)],
+        ...(usedEvidence.length === 0 ? {} : { sourceMemories: usedEvidence }),
       },
     };
   } catch {

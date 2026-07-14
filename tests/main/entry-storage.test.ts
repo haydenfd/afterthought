@@ -5,8 +5,17 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createEntryStorage } from '../../src/main/entry-storage';
+import type { MemoryEvidenceItem } from '../../src/shared/reflection';
 
 const temporaryDirectories: string[] = [];
+const sourceMemory: MemoryEvidenceItem = {
+  id: 'memory-one',
+  text: 'Earlier, uncertainty made every smaller choice feel urgent.',
+  similarity: 0.89,
+  sourceDate: '2026-07-10T14:05:00.000Z',
+  sourceDocumentIds: ['document-one'],
+  sourceEntryIds: ['f408164b-4355-4da3-9c64-944d8f7129fb'],
+};
 
 afterEach(async () => {
   await Promise.all(
@@ -60,12 +69,14 @@ describe('entry storage', () => {
         'What are you learning about your attention?',
       ],
       content: 'The routine helped until uncertainty took over.',
+      openingContext: [sourceMemory, sourceMemory],
       deeperReflection: {
         question: 'What makes uncertainty so interrupting?',
         response: 'It makes every smaller choice feel urgent.',
         provenance: {
           strategy: 'connect-behavior-and-effect',
           sourceMemoryIds: ['memory-one', 'memory-one'],
+          sourceMemories: [sourceMemory],
         },
       },
       themes: [' Attention ', 'uncertainty', 'attention'],
@@ -76,12 +87,14 @@ describe('entry storage', () => {
         'What changed in the routine?',
         'What are you learning about your attention?',
       ],
+      openingContext: [sourceMemory],
       deeperReflection: {
         question: 'What makes uncertainty so interrupting?',
         response: 'It makes every smaller choice feel urgent.',
         provenance: {
           strategy: 'connect-behavior-and-effect',
           sourceMemoryIds: ['memory-one'],
+          sourceMemories: [sourceMemory],
         },
       },
       themes: ['attention', 'uncertainty'],

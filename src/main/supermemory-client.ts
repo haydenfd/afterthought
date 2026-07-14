@@ -8,8 +8,17 @@ export const JOURNAL_MEMORY_CONTAINER = 'afterthought:user:local';
 export interface SupermemorySearchResult {
   id: string;
   memory?: string;
+  text?: string;
+  content?: string;
   similarity: number;
-  documents?: Array<{ id: string }>;
+  metadata?: unknown;
+  documents?: Array<{
+    id?: string;
+    customId?: string | null;
+    metadata?: unknown;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
 }
 
 export interface SupermemorySearchResponse {

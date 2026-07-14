@@ -30,6 +30,8 @@ const recentEntry: JournalEntry = {
     'Small obligations have been hard to close while the direction is uncertain.',
   themes: ['uncertainty', 'attention'],
 };
+const sourceDocumentId = 'source-document-one';
+const sourceEntryId = 'f408164b-4355-4da3-9c64-944d8f7129fb';
 
 function storageStub(entries: JournalEntry[] = [recentEntry]): EntryStorage {
   return {
@@ -55,7 +57,7 @@ function clientStub(similarity = 0.91): SupermemoryClient {
             memory:
               'Earlier, an unfinished application made a larger choice feel real.',
             similarity,
-            documents: [{ id: 'source-entry-one' }],
+            documents: [{ id: sourceDocumentId }],
           },
           {
             id: 'weak-memory',
@@ -65,7 +67,9 @@ function clientStub(similarity = 0.91): SupermemoryClient {
         ],
       }),
     },
-    post: vi.fn(),
+    post: vi.fn().mockResolvedValue({
+      documents: [{ id: sourceDocumentId, customId: sourceEntryId }],
+    }),
     documents: { add: vi.fn() },
   };
 }
@@ -117,6 +121,15 @@ describe('generateDeeperQuestion', () => {
       provenance: {
         strategy: 'connect-behavior-and-effect',
         sourceMemoryIds: ['strong-memory'],
+        sourceMemories: [
+          {
+            id: 'strong-memory',
+            text: 'Earlier, an unfinished application made a larger choice feel real.',
+            similarity: 0.91,
+            sourceDocumentIds: [sourceDocumentId],
+            sourceEntryIds: [sourceEntryId],
+          },
+        ],
       },
     });
 

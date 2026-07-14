@@ -5,10 +5,18 @@ import { NewEntryPage } from '@/routes/new-entry-page';
 import { DraftProvider } from '@/state/draft-context';
 import type {
   DeeperQuestionResult,
+  MemoryEvidenceItem,
   OpeningQuestionsResult,
 } from '../../../src/shared/reflection';
 
 const initialAfterthoughtApi = window.afterthought;
+const sourceMemory: MemoryEvidenceItem = {
+  id: 'memory-one',
+  text: 'Started a phone cutoff routine at 11pm.',
+  similarity: 0.91,
+  sourceDocumentIds: ['document-one'],
+  sourceEntryIds: ['f408164b-4355-4da3-9c64-944d8f7129fb'],
+};
 
 describe('NewEntryPage', () => {
   afterEach(() => {
@@ -74,6 +82,47 @@ describe('NewEntryPage', () => {
     expect(
       screen.getByText('What are you learning about protecting your mornings?'),
     ).toBeInTheDocument();
+  });
+
+  it('shows compact opening source context and saves it with the entry', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 'entry-id' });
+    setAfterthoughtApi(
+      vi.fn().mockResolvedValue({
+        questions: [
+          'What changed when you kept the phone cutoff last night?',
+          'What are you learning about protecting your mornings?',
+        ],
+        source: 'ai',
+        sourceMemories: [sourceMemory],
+      } satisfies OpeningQuestionsResult),
+      create,
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByText('A thread you may be returning to'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Started a phone cutoff routine at 11pm.'),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Journal entry'), {
+      target: { value: 'The cutoff changed my morning.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+
+    await completeCloseAnimation();
+
+    expect(create).toHaveBeenCalledWith({
+      prompt: 'What changed when you kept the phone cutoff last night?',
+      openingQuestions: [
+        'What changed when you kept the phone cutoff last night?',
+        'What are you learning about protecting your mornings?',
+      ],
+      content: 'The cutoff changed my morning.',
+      openingContext: [sourceMemory],
+    });
   });
 
   it('enables deeper reflection after a concise meaningful response', async () => {
@@ -215,12 +264,14 @@ describe('NewEntryPage', () => {
           provenance: {
             strategy: 'connect-behavior-and-effect',
             sourceMemoryIds: ['memory-one'],
+            sourceMemories: [sourceMemory],
           },
         }),
       ),
     );
 
     expect(screen.queryByRole('button', { name: 'Go deeper' })).not.toBeInTheDocument();
+    expect(screen.getByText('This question is connected to')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Deeper reflection'), {
       target: {
         value: 'It offers a quick answer when the larger work still feels open.',
@@ -247,6 +298,7 @@ describe('NewEntryPage', () => {
         provenance: {
           strategy: 'connect-behavior-and-effect',
           sourceMemoryIds: ['memory-one'],
+          sourceMemories: [sourceMemory],
         },
       },
       themes: ['attention', 'uncertainty'],

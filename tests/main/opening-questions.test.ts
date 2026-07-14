@@ -23,6 +23,7 @@ const recentEntry: JournalEntry = {
   prompt: "What's on your mind today?",
   content: 'Kept up the phone cutoff again last night.',
 };
+const sourceEntryId = 'f408164b-4355-4da3-9c64-944d8f7129fb';
 
 function entryStorageStub(entries: JournalEntry[] = [recentEntry]): EntryStorage {
   return {
@@ -51,11 +52,12 @@ function clientWithMemory(): SupermemoryClient {
             id: 'memory-one',
             memory: 'Started a phone cutoff routine at 11pm.',
             similarity: 0.9,
+            documents: [{ id: 'source-document-one', customId: sourceEntryId }],
           },
         ],
       }),
     },
-    post: vi.fn(),
+    post: vi.fn().mockResolvedValue({ documents: [] }),
     documents: { add: vi.fn() },
   };
 }
@@ -92,6 +94,15 @@ describe('generateOpeningQuestions', () => {
       questions: [
         'What changed when you kept the phone cutoff last night?',
         'What are you learning about protecting your mornings?',
+      ],
+      sourceMemories: [
+        {
+          id: 'memory-one',
+          text: 'Started a phone cutoff routine at 11pm.',
+          similarity: 0.9,
+          sourceDocumentIds: ['source-document-one'],
+          sourceEntryIds: [sourceEntryId],
+        },
       ],
     });
     expect(typeof result?.generatedAt).toBe('string');
