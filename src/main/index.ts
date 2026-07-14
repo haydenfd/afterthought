@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
 import type { DeeperReflection } from '../shared/journal-entry';
-import type { DeeperQuestionInput, OpeningQuestions } from '../shared/reflection';
+import type {
+  DeeperQuestionInput,
+  MemoryEvidenceItem,
+  OpeningQuestions,
+} from '../shared/reflection';
 import { generateDeeperQuestion } from './deeper-reflection';
 import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
@@ -126,13 +130,24 @@ void app.whenReady().then(async () => {
       throw new Error('Invalid journal entry.');
     }
 
-    const { prompt, content, title, openingQuestions, deeperReflection, themes } =
-      input as Record<string, unknown>;
+    const {
+      prompt,
+      content,
+      title,
+      openingQuestions,
+      openingContext,
+      deeperReflection,
+      themes,
+    } = input as Record<string, unknown>;
+    const parsedOpeningContext = parseMemoryEvidenceItems(openingContext);
     const entry = await journal.createEntry({
       prompt: typeof prompt === 'string' ? prompt : '',
       content: typeof content === 'string' ? content : '',
       ...(typeof title === 'string' ? { title } : {}),
       ...(isOpeningQuestions(openingQuestions) ? { openingQuestions } : {}),
+      ...(parsedOpeningContext.length > 0
+        ? { openingContext: parsedOpeningContext }
+        : {}),
       ...(isDeeperReflection(deeperReflection) ? { deeperReflection } : {}),
       ...(Array.isArray(themes)
         ? {
@@ -168,7 +183,13 @@ void app.whenReady().then(async () => {
   ipcMain.handle('reflection:opening-questions', async () => {
     const cached = await openingQuestionsStorage.get();
     if (cached) {
-      return { questions: cached.questions, source: 'ai' as const };
+      return {
+        questions: cached.questions,
+        source: 'ai' as const,
+        ...(cached.sourceMemories?.length
+          ? { sourceMemories: cached.sourceMemories }
+          : {}),
+      };
     }
 
     const bundle = await generateOpeningQuestions(
@@ -182,7 +203,13 @@ void app.whenReady().then(async () => {
     }
 
     await openingQuestionsStorage.set(bundle);
-    return { questions: bundle.questions, source: 'ai' as const };
+    return {
+      questions: bundle.questions,
+      source: 'ai' as const,
+      ...(bundle.sourceMemories?.length
+        ? { sourceMemories: bundle.sourceMemories }
+        : {}),
+    };
   });
   ipcMain.handle('reflection:deeper-question', (_event, input: unknown) => {
     if (!input || typeof input !== 'object') {
@@ -225,6 +252,66 @@ function isDeeperReflection(value: unknown): value is DeeperReflection {
     typeof value === 'object' &&
     typeof (value as Record<string, unknown>).question === 'string'
   );
+}
+
+function parseMemoryEvidenceItems(value: unknown): MemoryEvidenceItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const memories: MemoryEvidenceItem[] = [];
+  for (const candidate of value) {
+    const memory = parseMemoryEvidenceItem(candidate);
+    if (memory) {
+      memories.push(memory);
+    }
+  }
+
+  return memories;
+}
+
+function parseMemoryEvidenceItem(value: unknown): MemoryEvidenceItem | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id.trim() : '';
+  const text = typeof record.text === 'string' ? record.text.trim() : '';
+  const similarity =
+    typeof record.similarity === 'number' && Number.isFinite(record.similarity)
+      ? record.similarity
+      : NaN;
+  if (!id || !text || !Number.isFinite(similarity)) {
+    return null;
+  }
+
+  const sourceDate =
+    typeof record.sourceDate === 'string' && record.sourceDate.trim()
+      ? record.sourceDate.trim()
+      : undefined;
+
+  return {
+    id,
+    text,
+    similarity,
+    ...(sourceDate === undefined ? {} : { sourceDate }),
+    sourceDocumentIds: stringArray(record.sourceDocumentIds),
+    sourceEntryIds: stringArray(record.sourceEntryIds),
+  };
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? [
+        ...new Set(
+          value
+            .filter((item): item is string => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
 }
 
 app.on('window-all-closed', () => {

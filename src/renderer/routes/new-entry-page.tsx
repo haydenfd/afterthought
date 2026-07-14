@@ -1,5 +1,12 @@
 import { format } from 'date-fns';
-import { ArrowLeft, Check, LoaderCircle, MoveDown } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  LoaderCircle,
+  MoveDown,
+} from 'lucide-react';
 import { type AnimationEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useBeforeUnload, useNavigate } from 'react-router-dom';
 
@@ -7,7 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
-import type { OpeningQuestions, ReflectionProvenance } from '../../shared/reflection';
+import type {
+  MemoryEvidenceItem,
+  OpeningQuestions,
+  ReflectionProvenance,
+} from '../../shared/reflection';
 
 const fallbackQuestions = [
   'What has been taking up more space in your mind than you expected?',
@@ -29,6 +40,11 @@ export function NewEntryPage() {
   const [isClosing, setIsClosing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [aiQuestions, setAiQuestions] = useState<[string, string] | null>(null);
+  const [openingSourceMemories, setOpeningSourceMemories] = useState<
+    MemoryEvidenceItem[]
+  >([]);
+  const [isOpeningContextExpanded, setIsOpeningContextExpanded] = useState(false);
+  const [isDeeperContextExpanded, setIsDeeperContextExpanded] = useState(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
   const [deeperQuestion, setDeeperQuestion] = useState<string | null>(null);
   const [deeperResponse, setDeeperResponse] = useState('');
@@ -58,6 +74,7 @@ export function NewEntryPage() {
       .then((result) => {
         if (isCurrent && result.questions) {
           setAiQuestions(result.questions);
+          setOpeningSourceMemories(result.sourceMemories ?? []);
         }
       })
       .catch(() => {
@@ -212,6 +229,9 @@ export function NewEntryPage() {
         prompt: primaryQuestion,
         openingQuestions: questions,
         content,
+        ...(openingSourceMemories.length > 0
+          ? { openingContext: openingSourceMemories }
+          : {}),
         ...(deeperQuestion
           ? {
               deeperReflection: {
@@ -330,6 +350,14 @@ export function NewEntryPage() {
                 <p className="writing-text text-2xl leading-8 text-muted-foreground">
                   {questions[1]}
                 </p>
+                <MemoryThreadContext
+                  label="A thread you may be returning to"
+                  memories={openingSourceMemories}
+                  expanded={isOpeningContextExpanded}
+                  onToggle={() =>
+                    setIsOpeningContextExpanded((isExpanded) => !isExpanded)
+                  }
+                />
               </div>
 
               <Textarea
@@ -372,6 +400,15 @@ export function NewEntryPage() {
                   >
                     {deeperQuestion}
                   </h2>
+                  <MemoryThreadContext
+                    label="This question is connected to"
+                    memories={deeperProvenance?.sourceMemories ?? []}
+                    expanded={isDeeperContextExpanded}
+                    onToggle={() =>
+                      setIsDeeperContextExpanded((isExpanded) => !isExpanded)
+                    }
+                    className="mt-5"
+                  />
                   <Textarea
                     ref={deeperTextareaRef}
                     value={deeperResponse}
@@ -447,4 +484,65 @@ function autosizeTextarea(element: HTMLTextAreaElement | null): void {
 
   element.style.height = 'auto';
   element.style.height = `${element.scrollHeight}px`;
+}
+
+function MemoryThreadContext({
+  label,
+  memories,
+  expanded,
+  onToggle,
+  className,
+}: {
+  label: string;
+  memories: MemoryEvidenceItem[];
+  expanded: boolean;
+  onToggle: () => void;
+  className?: string;
+}) {
+  if (memories.length === 0) {
+    return null;
+  }
+
+  const visibleMemories = expanded ? memories : memories.slice(0, 1);
+  const ToggleIcon = expanded ? ChevronDown : ChevronRight;
+
+  return (
+    <div
+      className={cn(
+        'max-w-3xl border-l border-border pl-4 text-sm leading-6 text-muted-foreground',
+        className,
+      )}
+    >
+      <p className="font-sans text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/75">
+        {label}
+      </p>
+      <ul className="mt-2 space-y-2">
+        {visibleMemories.map((memory) => (
+          <li key={memory.id} className="writing-text text-base leading-7">
+            {previewMemory(memory.text)}
+          </li>
+        ))}
+      </ul>
+      {memories.length > 1 ? (
+        <button
+          type="button"
+          className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          onClick={onToggle}
+        >
+          <ToggleIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          {expanded ? 'Show less' : `Show ${memories.length - 1} more`}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function previewMemory(text: string): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+
+  if (normalized.length <= 180) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 177).trimEnd()}...`;
 }

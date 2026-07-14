@@ -37,7 +37,9 @@ describe('Supermemory journal ingestion', () => {
       customId: entry.id,
       metadata: {
         source: 'afterthought-journal',
+        entryId: entry.id,
         sourceDate: entry.createdAt,
+        localDate: '2026-07-11',
       },
     });
   });

@@ -1,8 +1,13 @@
 import type { EntryStorage } from './entry-storage';
 import { callGroq } from './groq-client';
-import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
+import { retrieveMemoryEvidence } from './memory-evidence';
 import type { PreferencesStorage } from './preferences-storage';
-import type { OpeningQuestions, OpeningQuestionsBundle } from '../shared/reflection';
+import type {
+  MemoryEvidenceItem,
+  OpeningQuestions,
+  OpeningQuestionsBundle,
+} from '../shared/reflection';
+import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 import type { JournalEntry } from '../shared/journal-entry';
 
 const recentEntryLimit = 4;
@@ -70,20 +75,14 @@ export async function generateOpeningQuestions(
   return parseBundle(
     response,
     recentEntries.length >= 2 || verifiedSourceDocuments.size >= 2,
+    relevantMemories,
   );
-}
-
-interface RetrievedMemory {
-  id: string;
-  text: string;
-  similarity: number;
-  sourceDocumentIds: string[];
 }
 
 async function retrieveRelevantMemories(
   client: SupermemoryClient,
   recentEntries: JournalEntry[],
-): Promise<RetrievedMemory[]> {
+): Promise<MemoryEvidenceItem[]> {
   const queries = recentEntries
     .slice(0, 2)
     .map((entry) =>
@@ -91,55 +90,10 @@ async function retrieveRelevantMemories(
         .filter(Boolean)
         .join(': '),
     );
-  const responses = await Promise.allSettled(
-    queries.map((query) =>
-      client.search.memories({
-        q: query,
-        containerTag: JOURNAL_MEMORY_CONTAINER,
-        limit: relevantMemoryLimit,
-        rerank: true,
-        include: { documents: true },
-      }),
-    ),
-  );
-  const memories = new Map<string, RetrievedMemory>();
-
-  for (const response of responses) {
-    if (response.status === 'rejected') {
-      continue;
-    }
-    for (const result of response.value.results) {
-      if (
-        typeof result.memory !== 'string' ||
-        !result.memory.trim() ||
-        !Number.isFinite(result.similarity) ||
-        result.similarity < minimumMemorySimilarity
-      ) {
-        continue;
-      }
-
-      const existing = memories.get(result.id);
-      const sourceDocumentIds = (result.documents ?? [])
-        .map((document) => document.id)
-        .filter(Boolean);
-      if (!existing || result.similarity > existing.similarity) {
-        memories.set(result.id, {
-          id: result.id,
-          text: result.memory.trim(),
-          similarity: result.similarity,
-          sourceDocumentIds,
-        });
-      } else if (sourceDocumentIds.length > 0) {
-        existing.sourceDocumentIds = [
-          ...new Set([...existing.sourceDocumentIds, ...sourceDocumentIds]),
-        ];
-      }
-    }
-  }
-
-  return [...memories.values()]
-    .sort((left, right) => right.similarity - left.similarity)
-    .slice(0, relevantMemoryLimit);
+  return retrieveMemoryEvidence(client, queries, {
+    limit: relevantMemoryLimit,
+    minimumSimilarity: minimumMemorySimilarity,
+  }).then((memories) => memories.slice(0, relevantMemoryLimit));
 }
 
 function extractProfile(
@@ -161,7 +115,7 @@ function extractProfile(
 function buildUserMessage(
   recentEntries: JournalEntry[],
   profile: { static: string[]; dynamic: string[] } | null,
-  relevantMemories: RetrievedMemory[],
+  relevantMemories: MemoryEvidenceItem[],
   userName: string | undefined,
 ): string {
   const parts: string[] = [];
@@ -202,6 +156,7 @@ function buildUserMessage(
 function parseBundle(
   response: string,
   canSupportRecurrence: boolean,
+  sourceMemories: MemoryEvidenceItem[],
 ): OpeningQuestionsBundle | null {
   const jsonText = extractJsonArray(response);
 
@@ -222,6 +177,7 @@ function parseBundle(
     return {
       questions: parsed,
       generatedAt: new Date().toISOString(),
+      ...(sourceMemories.length === 0 ? {} : { sourceMemories }),
     };
   } catch {
     return null;

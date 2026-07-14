@@ -8,6 +8,7 @@ import { formatFullDate, formatRouteDate, parseRouteDate } from '@/lib/dates';
 import { groupEntriesByLocalDate } from '@/lib/calendar';
 import { cn } from '@/lib/utils';
 import type { JournalEntry } from '../../shared/journal-entry';
+import type { MemoryEvidenceItem } from '../../shared/reflection';
 
 export function EntryDetailPage() {
   const { date } = useParams();
@@ -25,6 +26,10 @@ export function EntryDetailPage() {
       groupEntriesByLocalDate(entries).get(formatRouteDate(parsedDate)) ?? []
     ).sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }, [entries, parsedDate]);
+  const entriesById = useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry])),
+    [entries],
+  );
 
   useEffect(() => {
     let isCurrent = true;
@@ -86,6 +91,13 @@ export function EntryDetailPage() {
                 ),
               )}
             </div>
+            <MemoryEvidenceContext
+              label="Why this prompt appeared"
+              memories={entry.openingContext ?? []}
+              entriesById={entriesById}
+              currentEntryId={entry.id}
+              className="mt-5"
+            />
             <p className="mt-6 whitespace-pre-wrap writing-text text-xl leading-9 text-foreground">
               {entry.content}
             </p>
@@ -95,6 +107,13 @@ export function EntryDetailPage() {
                 <p className="mt-3 writing-text text-xl italic leading-8 text-muted-foreground">
                   {entry.deeperReflection.question}
                 </p>
+                <MemoryEvidenceContext
+                  label="What this question drew from"
+                  memories={entry.deeperReflection.provenance?.sourceMemories ?? []}
+                  entriesById={entriesById}
+                  currentEntryId={entry.id}
+                  className="mt-4"
+                />
                 {entry.deeperReflection.response ? (
                   <p className="mt-5 whitespace-pre-wrap writing-text text-xl leading-9 text-foreground">
                     {entry.deeperReflection.response}
@@ -131,4 +150,95 @@ export function EntryDetailPage() {
 
 function formatTheme(theme: string): string {
   return theme.charAt(0).toLocaleUpperCase() + theme.slice(1);
+}
+
+function MemoryEvidenceContext({
+  label,
+  memories,
+  entriesById,
+  currentEntryId,
+  className,
+}: {
+  label: string;
+  memories: MemoryEvidenceItem[];
+  entriesById: Map<string, JournalEntry>;
+  currentEntryId: string;
+  className?: string;
+}) {
+  if (memories.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className={cn(
+        'max-w-3xl border-l border-border pl-4 text-sm leading-6 text-muted-foreground',
+        className,
+      )}
+      aria-label={label}
+    >
+      <p className="font-sans text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/75">
+        {label}
+      </p>
+      <ul className="mt-2 space-y-3">
+        {memories.map((memory) => {
+          const sourceEntry = firstResolvedEntry(
+            memory.sourceEntryIds,
+            entriesById,
+            currentEntryId,
+          );
+
+          return (
+            <li key={memory.id}>
+              <p className="writing-text text-base leading-7">
+                {previewMemory(memory.text)}
+              </p>
+              {sourceEntry ? (
+                <Link
+                  to={`/calendar/${formatRouteDate(new Date(sourceEntry.createdAt))}`}
+                  className="mt-1 inline-flex text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  View source entry
+                </Link>
+              ) : memory.sourceDate ? (
+                <span className="mt-1 block text-xs text-muted-foreground/75">
+                  {formatSourceDate(memory.sourceDate)}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function firstResolvedEntry(
+  sourceEntryIds: string[],
+  entriesById: Map<string, JournalEntry>,
+  currentEntryId: string,
+): JournalEntry | null {
+  for (const entryId of sourceEntryIds) {
+    const entry = entriesById.get(entryId);
+    if (entry && entry.id !== currentEntryId) {
+      return entry;
+    }
+  }
+
+  return null;
+}
+
+function previewMemory(text: string): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+
+  if (normalized.length <= 220) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 217).trimEnd()}...`;
+}
+
+function formatSourceDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : formatFullDate(parsed);
 }

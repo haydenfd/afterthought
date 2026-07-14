@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { createOpeningQuestionsStorage } from '../../src/main/opening-questions-storage';
-import type { OpeningQuestionsBundle } from '../../src/shared/reflection';
+import type {
+  MemoryEvidenceItem,
+  OpeningQuestionsBundle,
+} from '../../src/shared/reflection';
 
 const temporaryDirectories: string[] = [];
 
@@ -24,6 +27,13 @@ const sampleBundle: OpeningQuestionsBundle = {
   ],
   generatedAt: '2026-07-11T00:00:00.000Z',
 };
+const sampleSourceMemory: MemoryEvidenceItem = {
+  id: 'memory-one',
+  text: 'Started a phone cutoff routine at 11pm.',
+  similarity: 0.91,
+  sourceDocumentIds: ['document-one'],
+  sourceEntryIds: ['f408164b-4355-4da3-9c64-944d8f7129fb'],
+};
 
 describe('opening questions storage', () => {
   it('returns null when no bundle has been generated yet', async () => {
@@ -38,6 +48,15 @@ describe('opening questions storage', () => {
     await storage.set(sampleBundle);
 
     expect(await storage.get()).toEqual(sampleBundle);
+  });
+
+  it('persists source memories with generated questions', async () => {
+    const storage = createOpeningQuestionsStorage(await createTemporaryBundlePath());
+    const bundle = { ...sampleBundle, sourceMemories: [sampleSourceMemory] };
+
+    await storage.set(bundle);
+
+    expect(await storage.get()).toEqual(bundle);
   });
 
   it('clears the persisted bundle', async () => {

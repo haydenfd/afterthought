@@ -1,4 +1,8 @@
-import type { OpeningQuestions, ReflectionProvenance } from './reflection';
+import type {
+  MemoryEvidenceItem,
+  OpeningQuestions,
+  ReflectionProvenance,
+} from './reflection';
 
 export type DeeperReflection = {
   question: string;
@@ -14,6 +18,7 @@ export type JournalEntry = {
   content: string;
   title?: string;
   openingQuestions?: OpeningQuestions;
+  openingContext?: MemoryEvidenceItem[];
   deeperReflection?: DeeperReflection;
   themes?: string[];
 };
@@ -23,6 +28,7 @@ export type CreateJournalEntryInput = {
   content: string;
   title?: string;
   openingQuestions?: OpeningQuestions;
+  openingContext?: MemoryEvidenceItem[];
   deeperReflection?: DeeperReflection;
   themes?: string[];
 };
