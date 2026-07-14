@@ -63,6 +63,16 @@ describe('preferences storage', () => {
     });
   });
 
+  it('persists the installation timestamp alongside other preferences', async () => {
+    const storage = createPreferencesStorage(await createTemporaryPreferencesPath());
+    const installedAt = '2026-07-14T12:00:00.000Z';
+
+    const result = await storage.setPreferences({ installedAt });
+
+    expect(result).toEqual({ installedAt });
+    expect(await storage.getPreferences()).toEqual({ installedAt });
+  });
+
   it('rejects a malformed appearance value and falls back to an empty object', async () => {
     const preferencesPath = await createTemporaryPreferencesPath();
     await writeFile(preferencesPath, JSON.stringify({ appearance: 'purple' }), 'utf8');

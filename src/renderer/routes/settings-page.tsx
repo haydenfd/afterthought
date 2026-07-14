@@ -62,7 +62,7 @@ export function SettingsPage() {
         <h1 className="mt-1 text-3xl font-medium">Preferences</h1>
       </header>
 
-      <div className="space-y-5">
+      <div className="route-content-enter space-y-5">
         <Card>
           <CardHeader>
             <CardTitle>Name</CardTitle>

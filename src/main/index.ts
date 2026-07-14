@@ -102,7 +102,12 @@ void app.whenReady().then(async () => {
   const preferencesStorage = createPreferencesStorage(
     join(app.getPath('userData'), 'preferences.json'),
   );
-  const preferences = await preferencesStorage.getPreferences();
+  const storedPreferences = await preferencesStorage.getPreferences();
+  const preferences = storedPreferences.installedAt
+    ? storedPreferences
+    : await preferencesStorage.setPreferences({
+        installedAt: new Date().toISOString(),
+      });
   const openingQuestionsStorage = createOpeningQuestionsStorage(
     join(app.getPath('userData'), 'opening-questions.json'),
   );

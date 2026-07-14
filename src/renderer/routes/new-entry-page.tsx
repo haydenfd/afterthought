@@ -313,7 +313,7 @@ export function NewEntryPage() {
               aria-live="polite"
             >
               <LoaderCircle
-                className="h-5 w-5 animate-spin text-primary"
+                className="h-5 w-5 animate-spin text-primary motion-reduce:animate-none"
                 aria-hidden="true"
               />
               <p className="mt-6 text-sm font-medium text-muted-foreground">
@@ -351,7 +351,7 @@ export function NewEntryPage() {
               {isGeneratingDeeper ? (
                 <div className="mt-10 border-t border-border pt-10" aria-live="polite">
                   <LoaderCircle
-                    className="h-4 w-4 animate-spin text-primary"
+                    className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none"
                     aria-hidden="true"
                   />
                   <p className="mt-4 text-sm text-muted-foreground">
@@ -362,7 +362,7 @@ export function NewEntryPage() {
 
               {deeperQuestion ? (
                 <section
-                  className="mt-10 border-t border-border pt-10"
+                  className="route-content-enter mt-10 border-t border-border pt-10"
                   aria-labelledby="deeper-question"
                 >
                   <p className="mb-4 text-sm text-muted-foreground">A little deeper</p>

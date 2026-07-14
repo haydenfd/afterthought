@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { formatFullDate, formatRouteDate, parseRouteDate } from '@/lib/dates';
 import { groupEntriesByLocalDate } from '@/lib/calendar';
+import { cn } from '@/lib/utils';
 import type { JournalEntry } from '../../shared/journal-entry';
 
 export function EntryDetailPage() {
@@ -65,7 +66,10 @@ export function EntryDetailPage() {
         {entriesForDate.map((entry, index) => (
           <article
             key={entry.id}
-            className={index > 0 ? 'mt-10 border-t border-border pt-10' : undefined}
+            className={cn(
+              'entry-detail-entry-enter',
+              index > 0 && 'mt-10 border-t border-border pt-10',
+            )}
           >
             <p className="text-sm text-muted-foreground">
               {format(new Date(entry.createdAt), 'h:mm a')}

@@ -81,20 +81,20 @@ export function ReflectionsPage() {
       </header>
 
       {isLoading ? (
-        <Card aria-live="polite">
+        <Card className="route-content-enter" aria-live="polite">
           <CardContent className="p-6 text-sm text-muted-foreground">
             Gathering remembered moments…
           </CardContent>
         </Card>
       ) : memory.status === 'offline' ? (
-        <Card className="bg-background/55">
+        <Card className="route-content-enter bg-background/55">
           <CardHeader>
             <CardTitle>Memory is resting</CardTitle>
             <CardDescription>{memory.message}</CardDescription>
           </CardHeader>
         </Card>
       ) : (
-        <div className="space-y-8">
+        <div className="route-content-enter space-y-8">
           {memory.message ? (
             <p className="text-sm text-muted-foreground" role="status">
               {memory.message}
