@@ -79,11 +79,14 @@ export function ProfilePage() {
       </header>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground" aria-live="polite">
+        <p
+          className="route-content-enter text-sm text-muted-foreground"
+          aria-live="polite"
+        >
           Reading back through what you have shared…
         </p>
       ) : memory.status === 'offline' ? (
-        <Card className="bg-background/55">
+        <Card className="route-content-enter bg-background/55">
           <CardHeader>
             <CardTitle>This portrait is resting</CardTitle>
           </CardHeader>
@@ -92,7 +95,7 @@ export function ProfilePage() {
           </CardContent>
         </Card>
       ) : hasProfile ? (
-        <div className="space-y-12">
+        <div className="route-content-enter space-y-12">
           {shifting.length > 0 ? (
             <section aria-labelledby="shifting-heading">
               <h2
@@ -136,7 +139,7 @@ export function ProfilePage() {
           ) : null}
         </div>
       ) : (
-        <p className="max-w-xl writing-text text-xl leading-8 text-muted-foreground">
+        <p className="route-content-enter max-w-xl writing-text text-xl leading-8 text-muted-foreground">
           This page is quiet for now. As you keep writing, a portrait of who you are
           will take shape here — recurring themes, what is changing, what stays
           constant.

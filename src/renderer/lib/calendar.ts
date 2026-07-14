@@ -78,6 +78,10 @@ export function canNavigateToMonth(month: Date, today: Date = new Date()): boole
   return !isAfter(startOfMonth(month), startOfMonth(today));
 }
 
+export function canNavigateToMonthFrom(month: Date, minimumMonth: Date): boolean {
+  return !isBefore(startOfMonth(month), startOfMonth(minimumMonth));
+}
+
 export function isSelectableEntryDay(day: CalendarDay): boolean {
   return day.hasEntry && !day.isFuture && day.isCurrentMonth;
 }

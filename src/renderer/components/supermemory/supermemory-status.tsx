@@ -27,7 +27,10 @@ export function SupermemoryStatus({
       title={`Supermemory Local: ${statusLabel[status]}`}
     >
       {isChecking ? (
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+        <LoaderCircle
+          className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+          aria-hidden="true"
+        />
       ) : (
         <Circle
           className={cn(
