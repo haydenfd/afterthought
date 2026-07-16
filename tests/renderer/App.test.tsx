@@ -14,7 +14,26 @@ describe('App', () => {
     });
   });
 
-  it('opens on Calendar without generating an opening question', async () => {
+  it('opens onboarding from the root route', async () => {
+    render(
+      <AppProviders>
+        <MemoryRouter initialEntries={['/']}>
+          <AppRoutes />
+        </MemoryRouter>
+      </AppProviders>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome to Afterthought' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 of 5')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Skip onboarding' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Primary' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens Calendar without generating an opening question', async () => {
     const openingQuestions = vi.fn();
     const currentApi = window.afterthought;
     Object.defineProperty(window, 'afterthought', {
@@ -27,7 +46,7 @@ describe('App', () => {
 
     render(
       <AppProviders>
-        <MemoryRouter initialEntries={['/']}>
+        <MemoryRouter initialEntries={['/calendar']}>
           <AppRoutes />
         </MemoryRouter>
       </AppProviders>,
