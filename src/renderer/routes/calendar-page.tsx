@@ -98,10 +98,7 @@ export function CalendarPage() {
     <section className="mx-auto min-h-screen max-w-6xl px-6 py-8 sm:px-10 sm:py-10">
       <header className="mb-8 flex items-start justify-between gap-8">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Calendar
-          </p>
-          <h1 className="mt-2 text-4xl font-medium tracking-tight">
+          <h1 className="text-4xl font-medium tracking-tight">
             {format(visibleMonth, 'MMMM yyyy')}
           </h1>
           <p className="mt-3 text-sm text-muted-foreground">
@@ -136,7 +133,7 @@ export function CalendarPage() {
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/75 shadow-[0_24px_80px_hsl(var(--primary)/0.08)]">
+        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/75 shadow-[0_30px_28px_-32px_hsl(var(--primary)/0.42)]">
           <div className="grid grid-cols-7 border-b border-border/80 bg-background/20 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
             {weekdayLabels.map((label) => (
               <div key={label} className="px-3 py-3 sm:px-4">
@@ -187,6 +184,12 @@ export function CalendarPage() {
                     !isLastRow && 'border-b border-border/60',
                     day.isFuture && 'cursor-not-allowed text-foreground/20',
                     hasEntry && 'bg-accent/55 text-foreground',
+                    hasEntry &&
+                      !isLastColumn &&
+                      'border-r-[hsl(var(--foreground)/0.14)]',
+                    hasEntry &&
+                      !isLastRow &&
+                      'border-b-[hsl(var(--foreground)/0.14)]',
                     hasEntry && selectable && 'hover:bg-accent/75',
                     selectable && !hasEntry && 'cursor-pointer hover:bg-secondary/55',
                     day.isToday && 'ring-2 ring-inset ring-primary/80',
@@ -211,12 +214,6 @@ export function CalendarPage() {
                       </span>
                     ) : null}
                   </div>
-                  {hasEntry ? (
-                    <span
-                      className="h-1 w-9 rounded-full bg-primary/65"
-                      aria-hidden="true"
-                    />
-                  ) : null}
                 </button>
               );
             })}

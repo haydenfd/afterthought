@@ -136,7 +136,7 @@ export function SettingsPage() {
                 <SupermemoryStatus status={status} />
                 {lastCheckedAt ? (
                   <p className="text-xs text-muted-foreground">
-                    Last checked {format(lastCheckedAt, 'p')}
+                    As of {format(lastCheckedAt, 'p')}
                   </p>
                 ) : null}
                 {connectionMessage ? (
