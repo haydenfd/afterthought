@@ -5,6 +5,7 @@ import type { SupermemoryConnectionStatus } from '../../../shared/supermemory';
 
 const statusLabel: Record<SupermemoryConnectionStatus, string> = {
   checking: 'Checking',
+  starting: 'Starting',
   connected: 'Connected',
   offline: 'Offline',
 };
@@ -16,7 +17,7 @@ export function SupermemoryStatus({
   status: SupermemoryConnectionStatus;
   compact?: boolean;
 }) {
-  const isChecking = status === 'checking';
+  const isChecking = status === 'checking' || status === 'starting';
 
   return (
     <div

@@ -25,6 +25,12 @@ app.setName('Afterthought');
 
 const isDevelopment = !app.isPackaged;
 
+// Tracks the app-boot attempt to reach (and if needed, auto-start) Supermemory
+// Local, so the Settings status can show "starting" instead of a flat
+// "offline" while a first-run install is still downloading in the background.
+let supermemoryStartupState: 'starting' | 'ready' | 'failed' = 'starting';
+let supermemoryStartupUrl = '';
+
 async function checkSupermemoryConnection(
   value: unknown,
 ): Promise<SupermemoryConnectionResult> {
@@ -37,6 +43,14 @@ async function checkSupermemoryConnection(
   }
 
   const url = value.trim().replace(/\/+$/, '');
+
+  if (supermemoryStartupState === 'starting' && url === supermemoryStartupUrl) {
+    return {
+      status: 'starting',
+      url,
+      message: 'Starting Supermemory Local — this can take a minute on first run.',
+    };
+  }
 
   try {
     const parsedUrl = new URL(url);
@@ -115,7 +129,18 @@ void app.whenReady().then(async () => {
   const openingQuestionsStorage = createOpeningQuestionsStorage(
     join(app.getPath('userData'), 'opening-questions.json'),
   );
-  const supermemoryClient = createSupermemoryClient(resolveSupermemoryUrl(preferences));
+  const resolvedSupermemoryUrl = resolveSupermemoryUrl(preferences);
+  supermemoryStartupUrl = resolvedSupermemoryUrl.trim().replace(/\/+$/, '');
+  const supermemoryClient = createSupermemoryClient(resolvedSupermemoryUrl);
+  supermemoryClient.then(
+    () => {
+      supermemoryStartupState = 'ready';
+    },
+    (error: unknown) => {
+      supermemoryStartupState = 'failed';
+      console.error('[supermemory] local server did not start', error);
+    },
+  );
   const memory = createMemoryService(supermemoryClient);
   const journal = createJournalService(
     entryStorage,

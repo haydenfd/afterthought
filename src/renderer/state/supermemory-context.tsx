@@ -65,17 +65,31 @@ export function SupermemoryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let pollTimeout: ReturnType<typeof setTimeout> | undefined;
 
-    void window.afterthought.supermemory.checkConnection(baseUrl).then((result) => {
-      if (isMounted) {
+    const poll = () => {
+      void window.afterthought.supermemory.checkConnection(baseUrl).then((result) => {
+        if (!isMounted) {
+          return;
+        }
+
         setStatus(result.status);
         setLastCheckedAt(new Date());
         setConnectionMessage(result.message ?? null);
-      }
-    });
+
+        // Supermemory Local may still be installing/starting in the
+        // background — keep polling until it settles one way or the other.
+        if (result.status === 'starting') {
+          pollTimeout = setTimeout(poll, 3_000);
+        }
+      });
+    };
+
+    poll();
 
     return () => {
       isMounted = false;
+      clearTimeout(pollTimeout);
     };
   }, [baseUrl]);
 
