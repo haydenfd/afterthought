@@ -1,9 +1,8 @@
 import {
   CalendarDays,
-  ChevronsLeft,
-  ChevronsRight,
   Feather,
   NotebookPen,
+  PanelLeft,
   Plus,
   Settings,
   UserRound,
@@ -63,11 +62,7 @@ export function AppSidebar({
           onClick={isOpen ? onCollapse : onExpand}
           className="shrink-0 transition-transform duration-150 ease-out-quart active:scale-95"
         >
-          {isOpen ? (
-            <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <ChevronsRight className="h-4 w-4" aria-hidden="true" />
-          )}
+          <PanelLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
 
