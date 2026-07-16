@@ -72,6 +72,10 @@
 
   * {
     scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.82) transparent;
+  }
+
+  .dark * {
     scrollbar-color: hsl(var(--primary) / 0.55) transparent;
   }
 
@@ -85,13 +89,21 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary) / 0.55);
+    background-color: hsl(var(--primary) / 0.82);
     border-radius: 999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.95);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.55);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--primary) / 0.8);
   }
 }

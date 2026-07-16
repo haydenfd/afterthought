@@ -1,4 +1,6 @@
 import { Supermemory } from 'supermemory';
+import { spawn } from 'node:child_process';
+import { dirname, join } from 'node:path';
 
 import type { Preferences } from '../shared/preferences';
 import { SUPERMEMORY_LOCAL_URL } from '../shared/supermemory';
@@ -51,34 +53,118 @@ export interface SupermemoryClient {
 // Installing the local server binary on first run can take a while over the
 // network, so give it more headroom than the SDK's 30s default.
 const SUPERMEMORY_STARTUP_TIMEOUT_MS = 45_000;
+const SUPERMEMORY_REACHABILITY_TIMEOUT_MS = 1_000;
+const SUPERMEMORY_POLL_INTERVAL_MS = 250;
 
-export function createSupermemoryClient(
+export async function createSupermemoryClient(
   baseURL: string = SUPERMEMORY_LOCAL_URL,
 ): Promise<SupermemoryClient> {
-  // Supermemory.local() spawns its launcher via `process.execPath`, assuming a
-  // plain Node binary. In Electron's main process that path points at the
-  // Electron binary itself, which boots as a GUI app instead of running the
-  // script unless the child inherits ELECTRON_RUN_AS_NODE. Set it for the
-  // duration of this call so the spawned child runs as Node, then restore it.
-  const previousRunAsNode = process.env.ELECTRON_RUN_AS_NODE;
-  process.env.ELECTRON_RUN_AS_NODE = '1';
+  await ensureSupermemoryLocalServer(baseURL);
 
   return Supermemory.local({
-    start: true,
+    start: false,
     baseURL,
-    startupTimeout: SUPERMEMORY_STARTUP_TIMEOUT_MS,
     timeout: 5_000,
     maxRetries: 0,
-  }).finally(() => {
-    if (previousRunAsNode === undefined) {
-      delete process.env.ELECTRON_RUN_AS_NODE;
-    } else {
-      process.env.ELECTRON_RUN_AS_NODE = previousRunAsNode;
-    }
   });
 }
 
 export function resolveSupermemoryUrl(preferences: Preferences): string {
   const configuredUrl = preferences.supermemoryUrl?.trim();
   return configuredUrl || SUPERMEMORY_LOCAL_URL;
+}
+
+async function ensureSupermemoryLocalServer(baseURL: string): Promise<void> {
+  if (await isLocalServerReachable(baseURL)) {
+    return;
+  }
+
+  await startSupermemoryLocalServer(getPort(baseURL));
+
+  const deadline = Date.now() + SUPERMEMORY_STARTUP_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (await isLocalServerReachable(baseURL)) {
+      return;
+    }
+
+    await sleep(SUPERMEMORY_POLL_INTERVAL_MS);
+  }
+
+  throw new Error(
+    `Timed out waiting for local Supermemory server at ${baseURL}. Try running \`npx supermemory local\` manually.`,
+  );
+}
+
+async function isLocalServerReachable(baseURL: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SUPERMEMORY_REACHABILITY_TIMEOUT_MS);
+
+  try {
+    await fetch(baseURL, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function startSupermemoryLocalServer(port: number | undefined): Promise<void> {
+  const cliPath = getSupermemoryCliPath();
+  const args = [cliPath, 'local'];
+
+  if (port !== undefined) {
+    args.push('--port', String(port));
+  }
+
+  const child = spawn(process.execPath, args, {
+    detached: true,
+    stdio: 'ignore',
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '1',
+    },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const settle = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      callback();
+    };
+
+    child.once('error', (error) => settle(() => reject(error)));
+    setTimeout(() => settle(resolve), 100);
+  });
+
+  child.unref();
+}
+
+function getSupermemoryCliPath(): string {
+  return join(dirname(require.resolve('supermemory')), 'bin', 'cli');
+}
+
+function getPort(baseURL: string): number | undefined {
+  try {
+    const { port } = new URL(baseURL);
+    if (!port) {
+      return undefined;
+    }
+
+    return Number(port);
+  } catch {
+    return undefined;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
