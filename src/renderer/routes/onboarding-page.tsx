@@ -35,7 +35,7 @@ const slides: OnboardingSlide[] = [
     eyebrow: 'Start with today',
     title: 'Write without performing',
     description:
-      'Open a fresh page and follow the thought wherever it goes. Your entries stay saved on this machine.',
+      'Open a fresh page and follow the thought wherever it goes. Your entries are saved locally first, with optional memory continuity over time.',
     preview: 'write',
   },
   {
@@ -261,7 +261,7 @@ function WritePreview() {
           I keep returning to the same question, but maybe that is the point.
         </p>
         <div className="mt-auto border-t border-border/70 pt-5 text-xs text-muted-foreground">
-          Your words are saved locally as you write.
+          Your entry is saved locally when you finish.
         </div>
       </div>
     </div>
@@ -310,12 +310,12 @@ function ProfilePreview() {
         You
       </p>
       <h2 className="mt-5 max-w-md text-2xl font-medium leading-tight sm:text-3xl">
-        Who you seem to be becoming
+        A portrait in progress
       </h2>
       <div className="mt-8 space-y-6">
         <ProfileLine label="What seems to be shifting" width="76%" />
         <ProfileLine label="What holds steady" width="58%" />
-        <ProfileLine label="A question worth keeping" width="68%" />
+        <ProfileLine label="Threads worth noticing" width="68%" />
       </div>
       <div className="mt-auto flex items-center gap-2 pt-8 text-xs text-muted-foreground">
         <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />

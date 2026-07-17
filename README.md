@@ -1,38 +1,53 @@
 # Afterthought
 
-Afterthought is a local-first guided reflection app. It remembers completed
-reflections so it can offer more relevant questions and cautiously surface what
-appears to be recurring, steady, or changing over time.
+Afterthought is a local-first guided reflection app. It helps someone write one
+honest entry, remember the parts that matter, and begin the next session with a
+question grounded in what they have actually shared before.
 
-## Current Scope
+The product loop is deliberately small:
 
-The current vertical slice includes:
+```text
+write → save locally → index in Supermemory → retrieve relevant memories
+     → use Groq to shape a gentle next question → write again
+```
 
-- Secure Electron app structure with main, preload, and React renderer processes
-- Calm writing flow with two complementary opening questions
-- One optional, generated deeper question per reflection
-- Local JSON journal entry persistence in Electron user data
-- Best-effort ingestion of completed entries into Supermemory Local
-- Live local memory and profile inspection in Reflections
-- Groq-backed structured question planning with offline fallbacks
-- Automatically inferred themes used for retrieval and repetition avoidance
-- No authentication, database, synchronization, or manual tagging
+Supermemory is the durable memory and retrieval layer. Groq is the adaptive
+interpretation layer: it organizes retrieved evidence into questions and threads,
+but it is not allowed to invent memories or turn unanswered prompts into facts.
+
+## Current scope
+
+- A focused writing session with two complementary opening questions
+- Questions informed by recent entries, Supermemory retrieval, and the cautious profile
+- Local JSON persistence under Electron's user-data directory
+- Durable, observable Supermemory indexing with startup reconciliation and retry
+- A Reflections view with source memories, evidence-backed threads, dates, and source links
+- A You view with Supermemory's longitudinal profile and the threads supporting it
+- Groq-backed synthesis with explicit unavailable and offline states
+- Historical deeper reflections remain readable, but the active writing flow no longer adds a second question
+- No authentication, cloud sync, database, rich text, or manual editing of derived memories
 
 ## Stack
 
 - Electron and electron-vite
 - React, TypeScript, Vite, React Router
-- Tailwind CSS with shadcn/ui-style local primitives
+- Tailwind CSS with local shadcn/ui-style primitives
 - Lucide React and date-fns
 - Official `supermemory` TypeScript SDK
-- Vitest, ESLint, Prettier
+- Vitest, ESLint, and Prettier
 
 ## Setup
 
 ```bash
 npm install
+cp .env.example .env
+# Add a GROQ_API_KEY to .env for generated opening questions and threads.
 npm run dev
 ```
+
+`GROQ_API_KEY` is optional. Without it, local writing, saving, Supermemory indexing,
+and source-memory browsing still work; generated opening questions use a local
+fallback and the adaptive thread layer explains that it is unavailable.
 
 Production build:
 
@@ -48,8 +63,8 @@ npm run dist
 
 ## Install from GitHub
 
-Afterthought is distributed through GitHub Releases. Open the latest release,
-then download the installer for your operating system:
+Afterthought is distributed through GitHub Releases. Open the latest release and
+download the installer for your operating system:
 
 - **macOS**: download the `.dmg` for your Mac (`arm64` for Apple Silicon, `x64`
   for Intel), open it, and drag Afterthought to Applications.
@@ -63,11 +78,32 @@ System Settings > Privacy & Security and allow Afterthought to run.
 Checks:
 
 ```bash
+npm run format:check
 npm run typecheck
 npm run lint
 npm run test
-npm run format:check
 ```
+
+## Two-minute demo
+
+For the strongest demo, use at least two or three entries written on different
+days. The memory layer needs more than one source moment before it will describe
+something as steady or recurring.
+
+1. Start the app with Supermemory Local available and `GROQ_API_KEY` configured.
+2. Write and finish an entry about something present, unresolved, or being tested.
+3. Write another entry that revisits the same experience from a different day.
+4. Open **Reflections** and wait for **Memory index is ready**. Refresh if the
+   document is still processing.
+5. Show a thread, its grounded source moments, dates, and **View source entry** links.
+6. Open **New Entry**. The opening questions and the compact Supermemory context
+   demonstrate the next-session loop.
+7. Finish the next entry, then show **You** as the longer portrait and **Reflections**
+   as the current evidence.
+
+The key judging moment is not a generic AI summary. It is showing that the second
+session is different because the first session became searchable memory, while the
+source remains inspectable.
 
 ## Supermemory Local
 
@@ -77,105 +113,96 @@ The desktop client connects to:
 http://localhost:6767
 ```
 
-To run Supermemory Local separately:
+The app attempts to start Supermemory Local when needed. To run it separately:
 
 ```bash
 npx supermemory local --port 6767
 ```
 
-The app does not require Supermemory Local to be running. If the local service is
-unavailable, the Settings page shows an offline state without
-blocking the journaling UI.
+Journal entries are stored locally first, then ingested asynchronously into the
+container:
 
-Completed entries are saved to local JSON first, then sent asynchronously to the
-`afterthought:user:local` container. A failed or unavailable memory service never
-blocks the local journal save. Reflections can refresh the extracted memories and
-profile, and remains usable in a quiet offline state.
+```text
+afterthought:user:local
+```
+
+The ingestion ledger records pending, processing, complete, and failed entries so
+the app can reconcile local entries with remote documents after restart. The You
+and Reflections pages expose indexing status and offer a retry for failures.
+
+Only authored reflection prose is sent to Supermemory. Opening questions and
+unanswered generated prompts are provenance, not memories. An authored historical
+follow-up response is included as part of the reflection.
+
+Supermemory Local is optional for journaling. If it is unavailable, the local save
+still succeeds and the app reports the offline state without pretending that memory
+was indexed.
+
+## Groq's role
+
+When `GROQ_API_KEY` is configured, Groq is used in bounded places:
+
+- Generate two complementary opening questions from recent writing and retrieved memories
+- Organize retrieved Supermemory memories into up to four cited reflection threads
+- Phrase a gentle next question without diagnosis, certainty, or unsupported patterns
+
+The main process sends current writing and the retrieved context needed for these
+tasks. The renderer never receives the API key. Groq output is validated before it
+can appear as a thread, and a thread must cite memories returned by Supermemory.
 
 ## Architecture
 
-Afterthought is an Electron app with three process boundaries, connected only
-through a narrow, typed IPC surface:
+Afterthought is an Electron app with three process boundaries connected only through
+a narrow, typed IPC surface:
 
-- **Main process** (`src/main/`) — Node-side logic. Owns the filesystem and the
-  Supermemory Local HTTP client. Nothing here is reachable from the renderer
-  except through the IPC handlers registered in `src/main/index.ts`.
-- **Preload script** (`src/preload/index.ts`) — the only bridge between the two.
-  Uses `contextBridge.exposeInMainWorld` to expose a single `window.afterthought`
-  object with narrow `entries`, `memory`, `preferences`, `reflection`, and
-  `supermemory` namespaces. `contextIsolation` and `sandbox` are on and
-  `nodeIntegration` is off, so the renderer cannot touch Node or Electron APIs
-  directly — everything goes through this typed surface.
-- **Renderer** (`src/renderer/`) — a normal React 19 + React Router SPA. Routes
-  live in `src/renderer/routes/`, and components are split by role:
-  `src/renderer/components/layout/` (app shell, sidebar), `.../components/supermemory/`
-  (Supermemory-specific UI), and `.../components/ui/` (shadcn/ui-style primitives).
-  Cross-page state (draft text, theme, Supermemory status) lives in
-  `src/renderer/state/` via React context.
+- **Main process** (`src/main/`) owns the filesystem, Groq calls, and the Supermemory Local client.
+- **Preload script** (`src/preload/index.ts`) exposes the typed `window.afterthought` bridge.
+- **Renderer** (`src/renderer/`) contains the React UI and never touches Node or the filesystem directly.
 
-Shared types that cross the IPC boundary (`JournalEntry`, `MemoryProfile`, etc.)
-live in `src/shared/` so main and renderer never drift out of sync.
+Shared types that cross the IPC boundary live in `src/shared/`.
 
-Tests live outside `src/`, in `tests/`, mirroring the source tree (e.g.
-`src/main/entry-storage.ts` is covered by `tests/main/entry-storage.test.ts`).
+### Writing and indexing
 
-### Data flow: writing an entry
+1. `NewEntryPage` requests two cached or generated opening questions.
+2. The person writes in one uninterrupted text area and finishes when ready.
+3. `entries:create` saves the authored entry atomically under Electron's `userData/entries` directory.
+4. `journal-service.ts` starts asynchronous ingestion without delaying the local save.
+5. `supermemory-ingestion.ts` sends clean prose with the entry's custom ID and source metadata.
+6. The durable ingestion ledger polls Supermemory until the document is complete or records a retryable failure.
 
-1. `NewEntryPage` loads two cached or generated opening questions without reacting
-   to keystrokes. The person writes in one uninterrupted initial area.
-2. The person can finish immediately or select **Go deeper**. That explicit action
-   asks the main process for one follow-up; there is no conversational loop.
-3. The deeper-question service interprets the current writing, plans targeted
-   retrieval, filters weak Supermemory matches, and asks Groq for one structured
-   question. It can ignore memory entirely and has a local fallback.
-4. `NewEntryPage` calls `window.afterthought.entries.create(...)` with the complete
-   guided session.
-5. Preload forwards this over IPC to the `entries:create` handler in `src/main/index.ts`.
-6. `journal-service.ts` calls `entry-storage.ts`, which writes the entry as local
-   JSON under Electron's `userData/entries` directory. This save is synchronous
-   with the UI response — it's the durable source of truth.
-7. `journal-service.ts` then fires an **async, best-effort** call into
-   `supermemory-ingestion.ts`, which sends clean prose containing the opening
-   context, initial writing, and optional deeper exchange. Failures never block
-   or fail the local save.
+### Reading and adapting
 
-### Data flow: reading memories back
+1. Opening-question generation combines recent local entries, Supermemory search, and the Supermemory profile.
+2. The resulting questions are saved with their source context so the entry can explain why they appeared.
+3. Reflections and You read paginated memories and profile data from the `afterthought:user:local` container.
+4. Groq receives that bounded context and returns only source-cited threads with gentle optional questions.
+5. The renderer shows the interpretation alongside the source memory and a link back to the local journal entry.
 
-`memory-service.ts` calls Supermemory Local's `/v4/memories/list` (paginated) and
-`profile` endpoints, normalizes whatever shape comes back (the code defensively
-handles a few possible response shapes), and returns a `MemoryRefreshResult` with
-an explicit `online`/`offline` status. `ReflectionsPage` renders this, so the UI
-degrades gracefully — the app is always usable even with Supermemory Local down,
-by design (see `checkSupermemoryConnection` in `src/main/index.ts`, which never
-throws, just reports offline).
+### Design principle
 
-### Key design principle
-
-**Local-first, memory-service-optional.** Journal entries are the durable local
-artifact; Supermemory Local is a value-add layer that's allowed to be down,
-slow, or wrong without taking the journaling flow down with it. Nearly every
-Supermemory-touching function in the codebase is written to fail soft and return
-a typed offline/error state rather than throw.
+**Local-first, evidence-bound continuity.** The journal is the durable user-owned
+artifact. Supermemory provides persistent extraction and retrieval. Groq provides
+bounded language synthesis. Each layer can fail without turning a person's writing
+into a failed save or an unsupported conclusion.
 
 ## Routes
 
-- `/entry/new`: focused guided reflection screen
-- `/calendar`: month calendar of saved entries
-- `/calendar/:date`: saved entry detail view
-- `/reflections`: concrete remembered moments from completed reflections
-- `/profile`: cautious synthesized profile from the local memory service
-- `/settings`: appearance and Supermemory Local settings
-- `/`: redirects to `/calendar`
+- `/entry/new`: focused guided reflection session
+- `/calendar`: archive of saved entries
+- `/calendar/:date`: entry detail with prompt and memory provenance
+- `/reflections`: current source memories and evidence-backed threads
+- `/profile`: cautious longitudinal profile and supporting threads
+- `/settings`: appearance, local memory URL, connection, and privacy context
+- `/`: redirects to onboarding
 
-## Current Limitations
+## Privacy and intentional boundaries
 
-- Journal entries are local JSON files only; they are not encrypted or synced
-- Supermemory processing can take a short time after an entry is saved
-- No markdown, rich text, backend server, database, authentication, or syncing
+- Journal entries are local JSON files and are not encrypted or synced yet.
+- Supermemory Local stores extracted memories on the configured local service.
+- If Groq is configured, current writing and retrieved context are sent to Groq to generate questions and threads.
+- Derived profile lines and threads are read-only views; they do not overwrite the journal.
+- Afterthought is guided reflection software, not a diagnostic tool or a replacement for professional care.
+- There is no authentication, cloud account, backend server, or multi-device sync.
 
-## Planned Next Steps
-
-- Add local encrypted journal storage
-- Improve recovery/retry visibility for best-effort memory ingestion
-- Add stronger source-date provenance as Supermemory exposes it in search results
-- Add import/export and backup flows
+The app prioritizes a coherent source-backed continuity loop over adding unrelated
+AI surfaces.

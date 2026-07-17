@@ -116,9 +116,10 @@ export function SettingsPage() {
           <CardHeader>
             <CardTitle>Local memory</CardTitle>
             <CardDescription>
-              Supermemory indexes your authored reflections so new sessions can connect
-              with what you have shared before. Connection and indexing are separate:
-              the You and Reflections pages show whether saved entries are ready.
+              Your journal is saved locally first. Supermemory Local indexes authored
+              reflections for continuity; when Groq is configured, it receives current
+              writing and retrieved context to shape questions and threads. Generated
+              prompts are never indexed as memories.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
