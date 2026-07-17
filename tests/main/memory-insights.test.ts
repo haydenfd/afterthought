@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MemoryItem } from '../../src/shared/memory';
 
@@ -26,12 +26,7 @@ const memories: MemoryItem[] = [
 ];
 
 beforeEach(() => {
-  vi.stubEnv('GROQ_API_KEY', 'test-key');
   vi.mocked(callGroq).mockReset();
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
 });
 
 describe('memory insight synthesis', () => {

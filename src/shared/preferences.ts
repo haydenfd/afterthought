@@ -6,3 +6,10 @@ export type Preferences = {
   appearance?: Appearance;
   supermemoryUrl?: string;
 };
+
+export type GroqApiKeyStatus = {
+  configured: boolean;
+  secureStorageAvailable: boolean;
+  maskedKey?: string;
+  message?: string;
+};

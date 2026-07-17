@@ -1,22 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { callGroq } from '../../src/main/groq-client';
+import { callGroq, configureGroqApiKey } from '../../src/main/groq-client';
 
 const originalFetch = global.fetch;
-const originalApiKey = process.env.GROQ_API_KEY;
 
 afterEach(() => {
   global.fetch = originalFetch;
-  if (originalApiKey === undefined) {
-    delete process.env.GROQ_API_KEY;
-  } else {
-    process.env.GROQ_API_KEY = originalApiKey;
-  }
+  configureGroqApiKey(null);
 });
 
 describe('callGroq', () => {
-  it('returns null when GROQ_API_KEY is not set', async () => {
-    delete process.env.GROQ_API_KEY;
+  it('returns null when no Groq key is configured', async () => {
     global.fetch = vi.fn();
 
     await expect(callGroq([{ role: 'user', content: 'hi' }])).resolves.toBeNull();
@@ -24,7 +18,7 @@ describe('callGroq', () => {
   });
 
   it('returns the message content on a successful response', async () => {
-    process.env.GROQ_API_KEY = 'test-key';
+    configureGroqApiKey('test-key');
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () =>
@@ -39,7 +33,7 @@ describe('callGroq', () => {
   });
 
   it('returns null on a non-2xx response', async () => {
-    process.env.GROQ_API_KEY = 'test-key';
+    configureGroqApiKey('test-key');
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       json: () => Promise.resolve({}),
@@ -49,7 +43,7 @@ describe('callGroq', () => {
   });
 
   it('returns null when the response has no message content', async () => {
-    process.env.GROQ_API_KEY = 'test-key';
+    configureGroqApiKey('test-key');
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ choices: [] }),
@@ -59,14 +53,14 @@ describe('callGroq', () => {
   });
 
   it('returns null on a network failure', async () => {
-    process.env.GROQ_API_KEY = 'test-key';
+    configureGroqApiKey('test-key');
     global.fetch = vi.fn().mockRejectedValue(new Error('network down'));
 
     await expect(callGroq([{ role: 'user', content: 'hi' }])).resolves.toBeNull();
   });
 
   it('requests JSON mode when jsonMode is set', async () => {
-    process.env.GROQ_API_KEY = 'test-key';
+    configureGroqApiKey('test-key');
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ choices: [{ message: { content: '{}' } }] }),

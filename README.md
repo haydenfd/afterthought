@@ -40,14 +40,15 @@ but it is not allowed to invent memories or turn unanswered prompts into facts.
 
 ```bash
 npm install
-cp .env.example .env
-# Add a GROQ_API_KEY to .env for generated opening questions and threads.
 npm run dev
 ```
 
-`GROQ_API_KEY` is optional. Without it, local writing, saving, Supermemory indexing,
-and source-memory browsing still work; generated opening questions use a local
-fallback and the adaptive thread layer explains that it is unavailable.
+Groq is optional. To enable generated opening questions and evidence-backed
+reflection threads, open **Settings** and paste a Groq API key. Afterthought stores
+it with the operating system's secure storage and only shows the final two
+characters after saving. Without it, local writing, saving, Supermemory indexing,
+and source-memory browsing still work; the adaptive layer explains that it is
+unavailable.
 
 Production build:
 
@@ -90,15 +91,17 @@ For the strongest demo, use at least two or three entries written on different
 days. The memory layer needs more than one source moment before it will describe
 something as steady or recurring.
 
-1. Start the app with Supermemory Local available and `GROQ_API_KEY` configured.
-2. Write and finish an entry about something present, unresolved, or being tested.
-3. Write another entry that revisits the same experience from a different day.
-4. Open **Reflections** and wait for **Memory index is ready**. Refresh if the
+1. Start the app with Supermemory Local available.
+2. Open **Settings**, paste a Groq API key, and save it. Confirm that the key is
+   shown only as a masked suffix.
+3. Write and finish an entry about something present, unresolved, or being tested.
+4. Write another entry that revisits the same experience from a different day.
+5. Open **Reflections** and wait for **Memory index is ready**. Refresh if the
    document is still processing.
-5. Show a thread, its grounded source moments, dates, and **View source entry** links.
-6. Open **New Entry**. The opening questions and the compact Supermemory context
+6. Show a thread, its grounded source moments, dates, and **View source entry** links.
+7. Open **New Entry**. The opening questions and the compact Supermemory context
    demonstrate the next-session loop.
-7. Finish the next entry, then show **You** as the longer portrait and **Reflections**
+8. Finish the next entry, then show **You** as the longer portrait and **Reflections**
    as the current evidence.
 
 The key judging moment is not a generic AI summary. It is showing that the second
@@ -140,7 +143,7 @@ was indexed.
 
 ## Groq's role
 
-When `GROQ_API_KEY` is configured, Groq is used in bounded places:
+When a Groq key is configured in Settings, Groq is used in bounded places:
 
 - Generate two complementary opening questions from recent writing and retrieved memories
 - Organize retrieved Supermemory memories into up to four cited reflection threads

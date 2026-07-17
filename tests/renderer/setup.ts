@@ -36,6 +36,21 @@ Object.defineProperty(window, 'afterthought', {
       }),
       retryIngestion: vi.fn().mockResolvedValue(undefined),
     },
+    groq: {
+      getStatus: vi.fn().mockResolvedValue({
+        configured: false,
+        secureStorageAvailable: true,
+      }),
+      setApiKey: vi.fn().mockResolvedValue({
+        configured: true,
+        secureStorageAvailable: true,
+        maskedKey: '••••••••ey',
+      }),
+      clearApiKey: vi.fn().mockResolvedValue({
+        configured: false,
+        secureStorageAvailable: true,
+      }),
+    },
     preferences: {
       get: vi.fn().mockResolvedValue({}),
       set: vi.fn().mockResolvedValue({}),

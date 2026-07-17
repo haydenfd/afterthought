@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
-import type { Preferences } from '../shared/preferences';
+import type { GroqApiKeyStatus, Preferences } from '../shared/preferences';
 import type {
   DeeperQuestionInput,
   DeeperQuestionResult,
@@ -31,6 +31,13 @@ const afterthoughtApi = {
     refresh: (): Promise<MemoryRefreshResult> => ipcRenderer.invoke('memory:refresh'),
     retryIngestion: (): Promise<MemoryRefreshResult['ingestion']> =>
       ipcRenderer.invoke('memory:retry-ingestion'),
+  },
+  groq: {
+    getStatus: (): Promise<GroqApiKeyStatus> => ipcRenderer.invoke('groq:get-status'),
+    setApiKey: (apiKey: string): Promise<GroqApiKeyStatus> =>
+      ipcRenderer.invoke('groq:set-api-key', apiKey),
+    clearApiKey: (): Promise<GroqApiKeyStatus> =>
+      ipcRenderer.invoke('groq:clear-api-key'),
   },
   preferences: {
     get: (): Promise<Preferences> => ipcRenderer.invoke('preferences:get'),

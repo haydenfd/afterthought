@@ -1,5 +1,14 @@
 import { format } from 'date-fns';
-import { Monitor, Moon, Sun, Wifi } from 'lucide-react';
+import {
+  Check,
+  KeyRound,
+  Monitor,
+  Moon,
+  ShieldCheck,
+  Sun,
+  Trash2,
+  Wifi,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SupermemoryStatus } from '@/components/supermemory/supermemory-status';
@@ -16,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useSupermemory } from '@/state/supermemory-context';
 import { type Appearance, useTheme } from '@/state/theme-context';
+import type { GroqApiKeyStatus } from '../../shared/preferences';
 
 const appearanceOptions: Array<{
   value: Appearance;
@@ -39,15 +49,27 @@ export function SettingsPage() {
   } = useSupermemory();
   const [userName, setUserName] = useState('');
   const [isNameLoaded, setIsNameLoaded] = useState(false);
+  const [groqApiKey, setGroqApiKey] = useState('');
+  const [groqStatus, setGroqStatus] = useState<GroqApiKeyStatus | null>(null);
+  const [groqAction, setGroqAction] = useState<'idle' | 'saving' | 'saved' | 'error'>(
+    'idle',
+  );
+  const [groqMessage, setGroqMessage] = useState('');
 
   useEffect(() => {
     let isCurrent = true;
 
-    void window.afterthought.preferences.get().then((preferences) => {
-      if (isCurrent) {
-        setUserName(preferences.userName ?? '');
-        setIsNameLoaded(true);
+    void Promise.all([
+      window.afterthought.preferences.get(),
+      window.afterthought.groq.getStatus(),
+    ]).then(([preferences, status]) => {
+      if (!isCurrent) {
+        return;
       }
+
+      setUserName(preferences.userName ?? '');
+      setGroqStatus(status);
+      setIsNameLoaded(true);
     });
 
     return () => {
@@ -81,6 +103,139 @@ export function SettingsPage() {
               placeholder="e.g. Jane Smith"
               spellCheck={false}
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Groq reflection layer</CardTitle>
+            <CardDescription>
+              Optional: add a Groq API key to enable adaptive opening questions and
+              evidence-backed reflection threads. The key is encrypted with your
+              operating system&apos;s secure storage; Afterthought only shows the final
+              two characters after saving.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="groq-api-key">API key</Label>
+              <Input
+                id="groq-api-key"
+                type="password"
+                autoComplete="off"
+                value={groqApiKey}
+                disabled={groqStatus === null || groqAction === 'saving'}
+                onChange={(event) => {
+                  setGroqApiKey(event.target.value);
+                  setGroqAction('idle');
+                  setGroqMessage('');
+                }}
+                placeholder={groqStatus?.maskedKey ?? 'Paste your Groq API key'}
+                spellCheck={false}
+              />
+              <p className="text-xs text-muted-foreground">
+                After saving, the raw key is cleared from this page and only its masked
+                suffix is shown.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                {groqStatus?.configured ? (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ShieldCheck
+                      className="h-3.5 w-3.5 text-emerald-600"
+                      aria-hidden="true"
+                    />
+                    Stored securely as <code>{groqStatus.maskedKey}</code>
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                    No Groq key configured
+                  </p>
+                )}
+                {groqStatus?.message ? (
+                  <p className="max-w-xl text-xs text-muted-foreground">
+                    {groqStatus.message}
+                  </p>
+                ) : null}
+                {groqMessage ? (
+                  <p
+                    className={cn(
+                      'text-xs',
+                      groqAction === 'error'
+                        ? 'text-destructive'
+                        : 'text-emerald-700 dark:text-emerald-400',
+                    )}
+                    role="status"
+                  >
+                    {groqMessage}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                {groqStatus?.configured ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={groqAction === 'saving'}
+                    onClick={() => {
+                      setGroqAction('saving');
+                      setGroqMessage('');
+                      void window.afterthought.groq
+                        .clearApiKey()
+                        .then((status) => {
+                          setGroqStatus(status);
+                          setGroqApiKey('');
+                          setGroqAction('idle');
+                          setGroqMessage('Groq key removed.');
+                        })
+                        .catch(() => {
+                          setGroqAction('error');
+                          setGroqMessage('The Groq key could not be removed.');
+                        });
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Remove
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  disabled={
+                    !groqApiKey.trim() || groqStatus === null || groqAction === 'saving'
+                  }
+                  onClick={() => {
+                    setGroqAction('saving');
+                    setGroqMessage('');
+                    void window.afterthought.groq
+                      .setApiKey(groqApiKey)
+                      .then((status) => {
+                        setGroqStatus(status);
+                        setGroqApiKey('');
+                        setGroqAction('saved');
+                        setGroqMessage('Groq key saved securely.');
+                      })
+                      .catch((error: unknown) => {
+                        setGroqAction('error');
+                        setGroqMessage(
+                          error instanceof Error
+                            ? error.message
+                            : 'The Groq key could not be saved.',
+                        );
+                      });
+                  }}
+                >
+                  {groqAction === 'saved' ? (
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <KeyRound className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {groqAction === 'saving' ? 'Saving…' : 'Save key'}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

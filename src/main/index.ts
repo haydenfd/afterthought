@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, shell } from 'electron';
 import { join } from 'node:path';
 
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
@@ -10,8 +10,9 @@ import type {
 } from '../shared/reflection';
 import { generateDeeperQuestion } from './deeper-reflection';
 import { createEntryStorage } from './entry-storage';
+import { configureGroqApiKey } from './groq-client';
+import { createGroqApiKeyStorage } from './groq-key-storage';
 import { createJournalService } from './journal-service';
-import { loadEnvFile } from './load-env';
 import { createMemoryService } from './memory-service';
 import { createMemoryIngestionStorage } from './memory-ingestion-storage';
 import { generateOpeningQuestions } from './opening-questions';
@@ -19,8 +20,6 @@ import { createOpeningQuestionsStorage } from './opening-questions-storage';
 import { createPreferencesStorage } from './preferences-storage';
 import { createSupermemoryClient, resolveSupermemoryUrl } from './supermemory-client';
 import { createJournalMemoryIngestor } from './supermemory-ingestion';
-
-loadEnvFile();
 
 app.setName('Afterthought');
 
@@ -133,6 +132,15 @@ void app.whenReady().then(async () => {
   const preferencesStorage = createPreferencesStorage(
     join(app.getPath('userData'), 'preferences.json'),
   );
+  const groqApiKeyStorage = createGroqApiKeyStorage(
+    join(app.getPath('userData'), 'groq-api-key.json'),
+    {
+      isAvailable: () => safeStorage.isEncryptionAvailable(),
+      encryptString: (value) => safeStorage.encryptString(value),
+      decryptString: (value) => safeStorage.decryptString(value),
+    },
+  );
+  configureGroqApiKey(await groqApiKeyStorage.getApiKey());
   const storedPreferences = await preferencesStorage.getPreferences();
   const preferences = storedPreferences.installedAt
     ? storedPreferences
@@ -212,6 +220,21 @@ void app.whenReady().then(async () => {
   ipcMain.handle('entries:list', () => entryStorage.listEntries());
   ipcMain.handle('memory:refresh', () => memory.refresh());
   ipcMain.handle('memory:retry-ingestion', () => memoryIngestion.retryFailed?.());
+  ipcMain.handle('groq:get-status', () => groqApiKeyStorage.getStatus());
+  ipcMain.handle('groq:set-api-key', async (_event, value: unknown) => {
+    if (typeof value !== 'string') {
+      throw new Error('Invalid Groq API key.');
+    }
+
+    const status = await groqApiKeyStorage.setApiKey(value);
+    configureGroqApiKey(value);
+    return status;
+  });
+  ipcMain.handle('groq:clear-api-key', async () => {
+    const status = await groqApiKeyStorage.clearApiKey();
+    configureGroqApiKey(null);
+    return status;
+  });
   ipcMain.handle('preferences:get', () => preferencesStorage.getPreferences());
   ipcMain.handle('preferences:set', (_event, update: unknown) => {
     if (!update || typeof update !== 'object') {

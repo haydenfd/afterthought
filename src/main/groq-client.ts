@@ -1,13 +1,19 @@
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+let configuredApiKey: string | null = null;
+
 export interface GroqMessage {
   role: 'system' | 'user';
   content: string;
 }
 
+export function configureGroqApiKey(apiKey: string | null): void {
+  configuredApiKey = apiKey?.trim() || null;
+}
+
 export function isGroqConfigured(): boolean {
-  return Boolean(process.env.GROQ_API_KEY?.trim());
+  return configuredApiKey !== null;
 }
 
 interface GroqChatCompletionResponse {
@@ -27,7 +33,7 @@ export async function callGroq(
     timeoutMs?: number;
   } = {},
 ): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY?.trim();
+  const apiKey = configuredApiKey;
 
   if (!apiKey) {
     return null;

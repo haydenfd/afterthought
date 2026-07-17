@@ -2,7 +2,7 @@
 
 import type { CreateJournalEntryInput, JournalEntry } from '../shared/journal-entry';
 import type { MemoryRefreshResult } from '../shared/memory';
-import type { Preferences } from '../shared/preferences';
+import type { GroqApiKeyStatus, Preferences } from '../shared/preferences';
 import type {
   DeeperQuestionInput,
   DeeperQuestionResult,
@@ -29,6 +29,11 @@ declare global {
       memory: {
         refresh: () => Promise<MemoryRefreshResult>;
         retryIngestion: () => Promise<MemoryRefreshResult['ingestion']>;
+      };
+      groq: {
+        getStatus: () => Promise<GroqApiKeyStatus>;
+        setApiKey: (apiKey: string) => Promise<GroqApiKeyStatus>;
+        clearApiKey: () => Promise<GroqApiKeyStatus>;
       };
       preferences: {
         get: () => Promise<Preferences>;
