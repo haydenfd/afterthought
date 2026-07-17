@@ -94,6 +94,10 @@ function parseRecord(value: unknown): MemoryIngestionRecord | null {
       ? Math.max(0, Math.floor(record.attempts))
       : 0;
   const remoteDocumentId = stringValue(record.remoteDocumentId);
+  const remoteStrategy =
+    record.remoteStrategy === 'document' || record.remoteStrategy === 'direct-memory'
+      ? record.remoteStrategy
+      : undefined;
   const remoteStatus = parseDocumentStatus(record.remoteStatus);
   const error = stringValue(record.error);
 
@@ -102,6 +106,7 @@ function parseRecord(value: unknown): MemoryIngestionRecord | null {
     updatedAt,
     attempts,
     ...(remoteDocumentId ? { remoteDocumentId } : {}),
+    ...(remoteStrategy ? { remoteStrategy } : {}),
     ...(remoteStatus ? { remoteStatus } : {}),
     ...(error ? { error } : {}),
   };

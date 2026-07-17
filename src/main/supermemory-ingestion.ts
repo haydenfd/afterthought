@@ -48,6 +48,7 @@ export function createJournalMemoryIngestor(
       ...(existing?.remoteDocumentId
         ? { remoteDocumentId: existing.remoteDocumentId }
         : {}),
+      ...(existing?.remoteStrategy ? { remoteStrategy: existing.remoteStrategy } : {}),
       ...(existing?.remoteStatus ? { remoteStatus: existing.remoteStatus } : {}),
     });
 
@@ -188,6 +189,9 @@ export function createJournalMemoryIngestor(
       }
 
       const existing = records[entryId] ?? pendingRecord();
+      if (existing.remoteStrategy === 'direct-memory') {
+        continue;
+      }
       const remoteStatus = normalizeDocumentStatus(document.status);
       const nextState = remoteStatus === 'done' ? 'complete' : 'pending';
       const existingWithoutError = withoutError(existing);
@@ -257,7 +261,16 @@ export function createJournalMemoryIngestor(
         remoteStatus,
       );
       if (finalDocument.status === 'failed') {
-        throw new Error('Supermemory marked this reflection as failed.');
+        const directMemory = await createDirectMemory(client, request);
+        await stateStorage.set(entry.id, {
+          state: 'complete',
+          updatedAt: new Date().toISOString(),
+          attempts,
+          remoteDocumentId: directMemory.documentId,
+          remoteStrategy: 'direct-memory',
+          remoteStatus: 'done',
+        });
+        return;
       }
 
       await stateStorage.set(entry.id, {
@@ -265,6 +278,7 @@ export function createJournalMemoryIngestor(
         updatedAt: new Date().toISOString(),
         attempts,
         remoteDocumentId,
+        remoteStrategy: 'document',
         ...(finalDocument.status ? { remoteStatus: finalDocument.status } : {}),
       });
     } catch (error: unknown) {
@@ -315,6 +329,36 @@ export function createJournalMemoryIngestor(
     }
 
     return added;
+  }
+
+  async function createDirectMemory(
+    client: SupermemoryClient,
+    request: ReturnType<typeof createDocumentRequest>,
+  ): Promise<{ documentId: string }> {
+    const response = await client.post<{
+      documentId?: string | null;
+      memories?: unknown[];
+    }>('/v4/memories', {
+      body: {
+        containerTag: request.containerTag,
+        memories: [
+          {
+            content: request.content,
+            isStatic: false,
+            metadata: request.metadata,
+            temporalContext: {
+              documentDate: request.metadata.sourceDate,
+            },
+          },
+        ],
+      },
+    });
+
+    if (!response.documentId) {
+      throw new Error('Supermemory did not return a direct memory document id.');
+    }
+
+    return { documentId: response.documentId };
   }
 
   async function waitForDocument(

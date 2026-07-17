@@ -146,4 +146,46 @@ describe('Supermemory journal ingestion', () => {
 
     expect(get).toHaveBeenCalledTimes(2);
   });
+
+  it('falls back to direct memories when local document embedding fails', async () => {
+    const add = vi.fn().mockResolvedValue({ id: 'failed-document', status: 'failed' });
+    const post = vi.fn().mockResolvedValue({
+      documentId: 'direct-memory-document',
+      memories: [{ id: 'memory-id' }],
+    });
+    const client = {
+      documents: { add },
+      post,
+    } as unknown as SupermemoryClient;
+    const ingestor = createJournalMemoryIngestor(
+      Promise.resolve(client),
+      preferencesStub(),
+    );
+
+    await ingestor.ingestEntry(entry);
+
+    expect(post).toHaveBeenCalledWith('/v4/memories', {
+      body: {
+        containerTag: JOURNAL_MEMORY_CONTAINER,
+        memories: [
+          {
+            content: 'Journal reflection — 2026-07-11\n\nA quiet moment.',
+            isStatic: false,
+            metadata: {
+              source: 'afterthought-journal',
+              entryId: entry.id,
+              sourceDate: entry.createdAt,
+              localDate: '2026-07-11',
+            },
+            temporalContext: { documentDate: entry.createdAt },
+          },
+        ],
+      },
+    });
+    await expect(ingestor.getStatus?.()).resolves.toMatchObject({
+      status: 'ready',
+      complete: 1,
+      failed: 0,
+    });
+  });
 });

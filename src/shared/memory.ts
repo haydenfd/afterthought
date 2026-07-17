@@ -46,6 +46,7 @@ export type MemoryIngestionRecord = {
   updatedAt: string;
   attempts: number;
   remoteDocumentId?: string;
+  remoteStrategy?: 'document' | 'direct-memory';
   remoteStatus?: MemoryDocumentStatus;
   error?: string;
 };
