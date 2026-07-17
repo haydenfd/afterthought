@@ -4,6 +4,7 @@ import type {
   MemoryProfile,
   MemoryRefreshResult,
 } from '../shared/memory';
+import { generateMemoryThreads } from './memory-insights';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 
 const memoryPageSize = 100;
@@ -54,16 +55,21 @@ export function createMemoryService(
       const partial =
         profileResult.status === 'rejected' || memoriesResult.status === 'rejected';
 
+      const profile =
+        profileResult.status === 'fulfilled'
+          ? normalizeProfile(profileResult.value)
+          : emptyProfile();
+      const memories =
+        memoriesResult.status === 'fulfilled'
+          ? normalizeMemories(memoriesResult.value)
+          : [];
+      const threads = await generateMemoryThreads(memories, profile);
+
       return {
         status: 'online',
-        profile:
-          profileResult.status === 'fulfilled'
-            ? normalizeProfile(profileResult.value)
-            : emptyProfile(),
-        memories:
-          memoriesResult.status === 'fulfilled'
-            ? normalizeMemories(memoriesResult.value)
-            : [],
+        profile,
+        memories,
+        ...(threads.length > 0 ? { threads } : {}),
         ...(ingestionStatus ? { ingestion: ingestionStatus } : {}),
         ...(partial
           ? {

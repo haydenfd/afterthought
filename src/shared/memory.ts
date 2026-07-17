@@ -11,6 +11,19 @@ export interface MemoryItem {
   sourceEntryIds?: string[];
 }
 
+export type MemoryThreadKind =
+  'present' | 'unresolved' | 'shifting' | 'steady' | 'progress';
+
+export type MemoryThread = {
+  id: string;
+  title: string;
+  summary: string;
+  kind: MemoryThreadKind;
+  sourceMemoryIds: string[];
+  sourceEntryIds: string[];
+  nextQuestion?: string;
+};
+
 export type MemoryDocumentStatus =
   | 'unknown'
   | 'queued'
@@ -45,6 +58,7 @@ export interface MemoryRefreshResult {
   status: 'online' | 'offline';
   profile: MemoryProfile;
   memories: MemoryItem[];
+  threads?: MemoryThread[];
   ingestion?: MemoryIngestionSummary;
   message?: string;
 }
