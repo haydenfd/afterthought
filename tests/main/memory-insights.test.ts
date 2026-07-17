@@ -83,6 +83,26 @@ describe('memory insight synthesis', () => {
     ).resolves.toEqual([]);
   });
 
+  it('does not let one entry become a recurring or steady pattern', async () => {
+    vi.mocked(callGroq).mockResolvedValue(
+      JSON.stringify({
+        threads: [
+          {
+            id: 'too-certain',
+            title: 'A steady pattern',
+            summary: 'This is a steady pattern in how the week unfolds.',
+            kind: 'steady',
+            sourceMemoryIds: ['memory-one'],
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      generateMemoryThreads([memories[0]!], { static: [], dynamic: [] }),
+    ).resolves.toEqual([]);
+  });
+
   it('returns no interpretation when Groq is unavailable', async () => {
     vi.mocked(callGroq).mockResolvedValue(null);
 

@@ -20,6 +20,7 @@ export async function callGroq(
     jsonMode?: boolean;
     temperature?: number;
     maxTokens?: number;
+    timeoutMs?: number;
   } = {},
 ): Promise<string | null> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -42,7 +43,7 @@ export async function callGroq(
         max_tokens: options.maxTokens ?? 400,
         ...(options.jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
     });
 
     if (!response.ok) {

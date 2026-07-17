@@ -38,7 +38,7 @@ export async function generateMemoryThreads(
       { role: 'system', content: systemPrompt },
       { role: 'user', content: buildContext(memories, profile) },
     ],
-    { jsonMode: true, temperature: 0.25, maxTokens: 900 },
+    { jsonMode: true, temperature: 0.25, maxTokens: 900, timeoutMs: 4_000 },
   );
 
   if (!response) {
@@ -130,6 +130,12 @@ function parseThread(
   const sourceEntryIds = unique(
     sourceMemoryIds.flatMap((id) => memoryMap.get(id)?.sourceEntryIds ?? []),
   );
+  if (
+    (kind === 'steady' || hasPatternLanguage(`${title} ${summary}`)) &&
+    sourceEntryIds.length < 2
+  ) {
+    return null;
+  }
   const nextQuestion = parseQuestion(record.nextQuestion);
   const id = slug(stringValue(record.id) ?? `thread-${index + 1}`);
 
@@ -142,6 +148,12 @@ function parseThread(
     sourceEntryIds,
     ...(nextQuestion ? { nextQuestion } : {}),
   };
+}
+
+function hasPatternLanguage(value: string): boolean {
+  return /\b(recurring|recurs|often|frequent\w*|usually|repeated\w*|pattern|over time|consistently)\b/i.test(
+    value,
+  );
 }
 
 function extractJsonObject(value: string): string | null {
