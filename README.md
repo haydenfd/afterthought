@@ -40,6 +40,26 @@ Production build:
 npm run build
 ```
 
+Package installers locally:
+
+```bash
+npm run dist
+```
+
+## Install from GitHub
+
+Afterthought is distributed through GitHub Releases. Open the latest release,
+then download the installer for your operating system:
+
+- **macOS**: download the `.dmg` for your Mac (`arm64` for Apple Silicon, `x64`
+  for Intel), open it, and drag Afterthought to Applications.
+- **Windows**: download the `.exe` installer and run it.
+- **Linux**: download the `.AppImage` for a portable app, or the `.deb` for
+  Debian/Ubuntu-based distributions.
+
+The current macOS builds are unsigned. If macOS blocks the first launch, open
+System Settings > Privacy & Security and allow Afterthought to run.
+
 Checks:
 
 ```bash

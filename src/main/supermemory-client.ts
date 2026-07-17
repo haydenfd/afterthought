@@ -97,7 +97,10 @@ async function ensureSupermemoryLocalServer(baseURL: string): Promise<void> {
 
 async function isLocalServerReachable(baseURL: string): Promise<boolean> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SUPERMEMORY_REACHABILITY_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    SUPERMEMORY_REACHABILITY_TIMEOUT_MS,
+  );
 
   try {
     await fetch(baseURL, {
@@ -149,7 +152,9 @@ async function startSupermemoryLocalServer(port: number | undefined): Promise<vo
 }
 
 function getSupermemoryCliPath(): string {
-  return join(dirname(require.resolve('supermemory')), 'bin', 'cli');
+  const cliPath = join(dirname(require.resolve('supermemory')), 'bin', 'cli');
+
+  return cliPath.replace('app.asar', 'app.asar.unpacked');
 }
 
 function getPort(baseURL: string): number | undefined {
