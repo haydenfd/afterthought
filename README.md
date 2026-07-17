@@ -92,8 +92,8 @@ Push a version tag to build installers in GitHub Actions and attach them to a
 GitHub Release:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The release workflow publishes macOS `.dmg` and `.zip` files for Apple Silicon
