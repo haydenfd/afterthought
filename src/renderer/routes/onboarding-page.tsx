@@ -4,7 +4,6 @@ import {
   CalendarDays,
   Check,
   Feather,
-  NotebookPen,
   PanelLeft,
   Sparkles,
   UserRound,
@@ -79,9 +78,9 @@ export function OnboardingPage() {
         <header className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-primary">
-              <NotebookPen className="h-4 w-4" aria-hidden="true" />
+              <Feather className="h-4 w-4" aria-hidden="true" />
             </div>
-            <span className="font-sans text-sm font-semibold">Afterthought</span>
+            <span className="font-sans text-base font-semibold">Afterthought</span>
           </div>
         </header>
 
@@ -195,8 +194,8 @@ function FeaturePreview({ kind }: { kind: PreviewKind }) {
         </div>
         <div className="flex min-h-0 flex-1">
           <div className="hidden w-36 shrink-0 border-r border-border/70 bg-card/45 p-3 sm:block">
-            <div className="flex items-center gap-2 text-xs font-semibold">
-              <NotebookPen className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Feather className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
               Afterthought
             </div>
             <div className="mt-8 space-y-2 text-[0.65rem] text-muted-foreground">

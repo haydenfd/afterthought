@@ -31,6 +31,16 @@ const isDevelopment = !app.isPackaged;
 let supermemoryStartupState: 'starting' | 'ready' | 'failed' = 'starting';
 let supermemoryStartupUrl = '';
 
+function getWindowIconPath(): string | undefined {
+  if (process.platform === 'darwin') {
+    return undefined;
+  }
+
+  return isDevelopment
+    ? join(__dirname, '../../resources/icon.png')
+    : join(process.resourcesPath, 'icon.png');
+}
+
 async function checkSupermemoryConnection(
   value: unknown,
 ): Promise<SupermemoryConnectionResult> {
@@ -83,6 +93,7 @@ async function checkSupermemoryConnection(
 }
 
 function createMainWindow(): void {
+  const windowIconPath = getWindowIconPath();
   const mainWindow = new BrowserWindow({
     width: 1180,
     height: 780,
@@ -90,6 +101,7 @@ function createMainWindow(): void {
     minHeight: 640,
     title: 'Afterthought',
     backgroundColor: '#f4efe7',
+    ...(windowIconPath ? { icon: windowIconPath } : {}),
     show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
