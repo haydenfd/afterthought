@@ -187,9 +187,7 @@ export function CalendarPage() {
                     hasEntry &&
                       !isLastColumn &&
                       'border-r-[hsl(var(--foreground)/0.14)]',
-                    hasEntry &&
-                      !isLastRow &&
-                      'border-b-[hsl(var(--foreground)/0.14)]',
+                    hasEntry && !isLastRow && 'border-b-[hsl(var(--foreground)/0.14)]',
                     hasEntry && selectable && 'hover:bg-accent/75',
                     selectable && !hasEntry && 'cursor-pointer hover:bg-secondary/55',
                     day.isToday && 'ring-2 ring-inset ring-primary/80',
