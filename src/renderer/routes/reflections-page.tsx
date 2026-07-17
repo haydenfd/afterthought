@@ -6,6 +6,7 @@ import { MemoryIndexStatus } from '@/components/memory/memory-index-status';
 import { MemoryInsightStatus } from '@/components/memory/memory-insight-status';
 import { MemoryPipelineNote } from '@/components/memory/memory-pipeline-note';
 import { MemoryThreadList } from '@/components/memory/memory-thread-list';
+import { TemporalMirror } from '@/components/memory/temporal-mirror';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -137,6 +138,8 @@ export function ReflectionsPage() {
           <MemoryPipelineNote />
 
           <MemoryInsightStatus insights={memory.insights} />
+
+          <TemporalMirror entriesById={entriesById} />
 
           {memory.message ? (
             <p className="text-sm text-muted-foreground" role="status">

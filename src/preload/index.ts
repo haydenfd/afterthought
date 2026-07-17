@@ -7,6 +7,7 @@ import type {
   DeeperQuestionInput,
   DeeperQuestionResult,
   OpeningQuestionsResult,
+  TemporalMirrorResult,
 } from '../shared/reflection';
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
@@ -49,6 +50,8 @@ const afterthoughtApi = {
       ipcRenderer.invoke('reflection:opening-questions'),
     deeperQuestion: (input: DeeperQuestionInput): Promise<DeeperQuestionResult> =>
       ipcRenderer.invoke('reflection:deeper-question', input),
+    temporalMirror: (query: string): Promise<TemporalMirrorResult> =>
+      ipcRenderer.invoke('reflection:temporal-mirror', query),
   },
 } as const;
 

@@ -68,6 +68,11 @@ Object.defineProperty(window, 'afterthought', {
           sourceMemoryIds: [],
         },
       }),
+      temporalMirror: vi.fn().mockResolvedValue({
+        status: 'insufficient',
+        query: '',
+        message: 'No temporal mirror result.',
+      }),
     },
   },
 });

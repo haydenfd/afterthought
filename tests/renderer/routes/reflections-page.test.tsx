@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { ReflectionsPage } from '@/routes/reflections-page';
 import type { MemoryRefreshResult } from '../../../src/shared/memory';
+import type { TemporalMirrorResult } from '../../../src/shared/reflection';
 
 describe('ReflectionsPage', () => {
   it('shows loading and then the remembered moments', async () => {
@@ -43,7 +44,11 @@ describe('ReflectionsPage', () => {
       } satisfies MemoryRefreshResult),
     );
 
-    render(<ReflectionsPage />);
+    render(
+      <MemoryRouter>
+        <ReflectionsPage />
+      </MemoryRouter>,
+    );
 
     expect(
       await screen.findByText(
@@ -195,18 +200,109 @@ describe('ReflectionsPage', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it('lets someone compare earlier and later source moments', async () => {
+    const temporalMirror = vi.fn().mockResolvedValue({
+      status: 'available',
+      query: 'What has changed in how I relate to uncertainty?',
+      then: {
+        summary: 'Earlier, uncertainty made the decision feel impossible to name.',
+        sourceMemoryIds: ['memory-old'],
+        sourceEntryIds: ['entry-old'],
+      },
+      now: {
+        summary: 'Now, the decision feels clearer even though it is not settled.',
+        sourceMemoryIds: ['memory-new'],
+        sourceEntryIds: ['entry-new'],
+      },
+      shifted: 'The question is becoming more about choosing than certainty.',
+      unresolved: 'The cost of choosing still feels real.',
+      sourceMemories: [
+        {
+          id: 'memory-old',
+          text: 'I keep circling the decision because uncertainty feels unsafe.',
+          similarity: 0.92,
+          sourceDate: '2026-06-01T12:00:00.000Z',
+          sourceDocumentIds: [],
+          sourceEntryIds: ['entry-old'],
+        },
+        {
+          id: 'memory-new',
+          text: 'I can see what I value now, even if I am not ready to decide.',
+          similarity: 0.88,
+          sourceDate: '2026-07-12T12:00:00.000Z',
+          sourceDocumentIds: [],
+          sourceEntryIds: ['entry-new'],
+        },
+      ],
+    } satisfies TemporalMirrorResult);
+    setMemoryRefresh(
+      vi.fn().mockResolvedValue({
+        status: 'online',
+        profile: { dynamic: [], static: [] },
+        memories: [],
+      } satisfies MemoryRefreshResult),
+      [
+        {
+          id: 'entry-old',
+          createdAt: '2026-06-01T12:00:00.000Z',
+          updatedAt: '2026-06-01T12:00:00.000Z',
+          prompt: '',
+          content: 'I keep circling the decision.',
+        },
+        {
+          id: 'entry-new',
+          createdAt: '2026-07-12T12:00:00.000Z',
+          updatedAt: '2026-07-12T12:00:00.000Z',
+          prompt: '',
+          content: 'I can see what I value now.',
+        },
+      ],
+      vi.fn().mockResolvedValue(undefined),
+      temporalMirror,
+    );
+
+    render(
+      <MemoryRouter>
+        <ReflectionsPage />
+      </MemoryRouter>,
+    );
+
+    const input = await screen.findByLabelText('Ask your journal');
+    fireEvent.change(input, {
+      target: { value: 'What has changed in how I relate to uncertainty?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Compare moments' }));
+
+    expect(await screen.findByText('Temporal mirror')).toBeInTheDocument();
+    expect(screen.getByText('Then')).toBeInTheDocument();
+    expect(screen.getByText('Now')).toBeInTheDocument();
+    expect(screen.getByText('What shifted')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'View source entry' })).toHaveLength(2);
+    expect(temporalMirror).toHaveBeenCalledWith(
+      'What has changed in how I relate to uncertainty?',
+    );
+  });
 });
 
 function setMemoryRefresh(
   refresh: () => Promise<MemoryRefreshResult>,
   entries: unknown[] = [],
   retryIngestion: () => Promise<unknown> = vi.fn().mockResolvedValue(undefined),
+  temporalMirror: (query: string) => Promise<TemporalMirrorResult> = vi
+    .fn()
+    .mockResolvedValue({
+      status: 'insufficient',
+      query: '',
+      message: 'No temporal mirror result.',
+    }),
 ): void {
   Object.defineProperty(window, 'afterthought', {
     configurable: true,
     value: {
       memory: { refresh, retryIngestion },
       entries: { list: vi.fn().mockResolvedValue(entries) },
+      reflection: { temporalMirror },
     },
   });
 }

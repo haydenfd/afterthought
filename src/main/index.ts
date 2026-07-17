@@ -20,6 +20,7 @@ import { createOpeningQuestionsStorage } from './opening-questions-storage';
 import { createPreferencesStorage } from './preferences-storage';
 import { createSupermemoryClient, resolveSupermemoryUrl } from './supermemory-client';
 import { createJournalMemoryIngestor } from './supermemory-ingestion';
+import { generateTemporalMirror } from './temporal-mirror';
 
 app.setName('Afterthought');
 
@@ -296,6 +297,14 @@ void app.whenReady().then(async () => {
       initialResponse,
     };
     return generateDeeperQuestion(entryStorage, supermemoryClient, deeperInput);
+  });
+  ipcMain.handle('reflection:temporal-mirror', async (_event, input: unknown) => {
+    if (typeof input !== 'string') {
+      throw new Error('Ask a question about your journal.');
+    }
+
+    const entries = await entryStorage.listEntries().catch(() => []);
+    return generateTemporalMirror(supermemoryClient, input, entries);
   });
   createMainWindow();
 

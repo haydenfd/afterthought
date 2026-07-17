@@ -22,6 +22,7 @@ but it is not allowed to invent memories or turn unanswered prompts into facts.
 - Local JSON persistence under Electron's user-data directory
 - Durable, observable Supermemory indexing with startup reconciliation and retry
 - A Reflections view with source memories, evidence-backed threads, dates, and source links
+- An on-demand temporal mirror that compares earlier and later source moments with citations
 - A You view with Supermemory's longitudinal profile and the threads supporting it
 - Groq-backed synthesis with explicit unavailable and offline states
 - Historical deeper reflections remain readable, but the active writing flow no longer adds a second question
@@ -87,9 +88,9 @@ npm run test
 
 ## Two-minute demo
 
-For the strongest demo, use at least two or three entries written on different
-days. The memory layer needs more than one source moment before it will describe
-something as steady or recurring.
+For the strongest demo, pre-seed at least three entries on different dates that
+touch the same theme. The temporal mirror needs a real earlier/later arc before it
+can show meaningful change.
 
 1. Start the app with Supermemory Local available.
 2. Open **Settings**, paste a Groq API key, and save it. Confirm that the key is
@@ -99,9 +100,12 @@ something as steady or recurring.
 5. Open **Reflections** and wait for **Memory index is ready**. Refresh if the
    document is still processing.
 6. Show a thread, its grounded source moments, dates, and **View source entry** links.
-7. Open **New Entry**. The opening questions and the compact Supermemory context
+7. Ask the temporal mirror something like **What has changed in how I relate to
+   uncertainty?** Show **Then**, **Now**, **What shifted**, **Still unresolved**, and
+   the source links behind each claim.
+8. Open **New Entry**. The opening questions and the compact Supermemory context
    demonstrate the next-session loop.
-8. Finish the next entry, then show **You** as the longer portrait and **Reflections**
+9. Finish the next entry, then show **You** as the longer portrait and **Reflections**
    as the current evidence.
 
 The key judging moment is not a generic AI summary. It is showing that the second
@@ -179,7 +183,8 @@ Shared types that cross the IPC boundary live in `src/shared/`.
 2. The resulting questions are saved with their source context so the entry can explain why they appeared.
 3. Reflections and You read paginated memories and profile data from the `afterthought:user:local` container.
 4. Groq receives that bounded context and returns only source-cited threads with gentle optional questions.
-5. The renderer shows the interpretation alongside the source memory and a link back to the local journal entry.
+5. A temporal mirror query retrieves relevant dated moments, asks Groq to compare earlier and later evidence, and rejects unsupported citations or non-chronological comparisons.
+6. The renderer shows the interpretation alongside the source memory and a link back to the local journal entry.
 
 ### Design principle
 
@@ -193,7 +198,7 @@ into a failed save or an unsupported conclusion.
 - `/entry/new`: focused guided reflection session
 - `/calendar`: archive of saved entries
 - `/calendar/:date`: entry detail with prompt and memory provenance
-- `/reflections`: current source memories and evidence-backed threads
+- `/reflections`: current source memories, evidence-backed threads, and the temporal mirror
 - `/profile`: cautious longitudinal profile and supporting threads
 - `/settings`: appearance, local memory URL, connection, and privacy context
 - `/`: redirects to onboarding

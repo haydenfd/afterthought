@@ -52,3 +52,25 @@ export type DeeperQuestionResult = {
   source: 'ai' | 'fallback';
   provenance: ReflectionProvenance;
 };
+
+export type TemporalMirrorSection = {
+  summary: string;
+  sourceMemoryIds: string[];
+  sourceEntryIds: string[];
+};
+
+export type TemporalMirrorResult =
+  | {
+      status: 'available';
+      query: string;
+      then: TemporalMirrorSection;
+      now: TemporalMirrorSection;
+      shifted: string;
+      unresolved: string;
+      sourceMemories: MemoryEvidenceItem[];
+    }
+  | {
+      status: 'insufficient' | 'unavailable';
+      query: string;
+      message: string;
+    };

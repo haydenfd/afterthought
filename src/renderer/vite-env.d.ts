@@ -7,6 +7,7 @@ import type {
   DeeperQuestionInput,
   DeeperQuestionResult,
   OpeningQuestionsResult,
+  TemporalMirrorResult,
 } from '../shared/reflection';
 import type { SupermemoryConnectionResult } from '../shared/supermemory';
 
@@ -42,6 +43,7 @@ declare global {
       reflection: {
         openingQuestions: () => Promise<OpeningQuestionsResult>;
         deeperQuestion: (input: DeeperQuestionInput) => Promise<DeeperQuestionResult>;
+        temporalMirror: (query: string) => Promise<TemporalMirrorResult>;
       };
     };
   }
