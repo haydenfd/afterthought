@@ -34,6 +34,7 @@ Object.defineProperty(window, 'afterthought', {
         profile: { static: [], dynamic: [] },
         memories: [],
       }),
+      retryIngestion: vi.fn().mockResolvedValue(undefined),
     },
     preferences: {
       get: vi.fn().mockResolvedValue({}),

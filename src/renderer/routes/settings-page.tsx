@@ -116,8 +116,9 @@ export function SettingsPage() {
           <CardHeader>
             <CardTitle>Local memory</CardTitle>
             <CardDescription>
-              This private service helps connect today’s reflection with what you have
-              shared before.
+              Supermemory indexes your authored reflections so new sessions can connect
+              with what you have shared before. Connection and indexing are separate:
+              the You and Reflections pages show whether saved entries are ready.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

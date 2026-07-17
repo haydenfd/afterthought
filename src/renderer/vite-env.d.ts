@@ -28,6 +28,7 @@ declare global {
       };
       memory: {
         refresh: () => Promise<MemoryRefreshResult>;
+        retryIngestion: () => Promise<MemoryRefreshResult['ingestion']>;
       };
       preferences: {
         get: () => Promise<Preferences>;

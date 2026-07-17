@@ -40,6 +40,40 @@ describe('ProfilePage', () => {
     expect(await screen.findByText(/This page is quiet for now/)).toBeInTheDocument();
   });
 
+  it('keeps sourced threads visible alongside the longitudinal profile', async () => {
+    setMemoryRefresh(
+      vi.fn().mockResolvedValue({
+        status: 'online',
+        profile: {
+          dynamic: ['Building has been energizing lately.'],
+          static: [],
+        },
+        memories: [
+          {
+            id: 'memory-one',
+            text: 'Making time to build changed the shape of the week.',
+            sourceEntryIds: ['entry-one'],
+          },
+        ],
+        threads: [
+          {
+            id: 'making-space',
+            title: 'Making space to build',
+            summary: 'Protected creative time is becoming easier to recognize.',
+            kind: 'shifting',
+            sourceMemoryIds: ['memory-one'],
+            sourceEntryIds: ['entry-one'],
+          },
+        ],
+      } satisfies MemoryRefreshResult),
+    );
+
+    render(<ProfilePage />);
+
+    expect(await screen.findByText('Making space to build')).toBeInTheDocument();
+    expect(screen.getByText('Threads shaping this portrait')).toBeInTheDocument();
+  });
+
   it('stays calm and local-first when Supermemory is offline', async () => {
     setMemoryRefresh(vi.fn().mockRejectedValue(new Error('offline')));
 

@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 import { ReflectionsPage } from '@/routes/reflections-page';
 import type { MemoryRefreshResult } from '../../../src/shared/memory';
@@ -21,7 +22,11 @@ describe('ReflectionsPage', () => {
     };
     setMemoryRefresh(vi.fn().mockResolvedValue(result));
 
-    render(<ReflectionsPage />);
+    render(
+      <MemoryRouter>
+        <ReflectionsPage />
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText('Gathering remembered moments…')).toBeInTheDocument();
     expect(
@@ -47,6 +52,106 @@ describe('ReflectionsPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows sourced threads and links them back to local entries', async () => {
+    setMemoryRefresh(
+      vi.fn().mockResolvedValue({
+        status: 'online',
+        profile: { dynamic: [], static: [] },
+        memories: [
+          {
+            id: 'memory-one',
+            text: 'The phone cutoff made mornings feel less rushed.',
+            sourceDate: '2026-07-10T15:30:00-07:00',
+            sourceEntryIds: ['entry-one'],
+          },
+        ],
+        threads: [
+          {
+            id: 'attention-and-rest',
+            title: 'Attention and rest',
+            summary: 'A new boundary is helping mornings feel less rushed.',
+            kind: 'progress',
+            sourceMemoryIds: ['memory-one'],
+            sourceEntryIds: ['entry-one'],
+            nextQuestion: 'What helps this boundary feel chosen?',
+          },
+        ],
+      } satisfies MemoryRefreshResult),
+      [
+        {
+          id: 'entry-one',
+          createdAt: '2026-07-10T15:30:00-07:00',
+          updatedAt: '2026-07-10T15:30:00-07:00',
+          prompt: '',
+          content: 'I wrote about a new boundary.',
+        },
+      ],
+    );
+
+    render(
+      <MemoryRouter>
+        <ReflectionsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Attention and rest')).toBeInTheDocument();
+    expect(
+      screen.getByText('What helps this boundary feel chosen?'),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('link', { name: 'View source entry' })
+        .every((link) => link.getAttribute('href') === '/calendar/2026-07-10'),
+    ).toBe(true);
+  });
+
+  it('offers a retry when an entry still needs indexing', async () => {
+    const retryIngestion = vi.fn().mockResolvedValue({
+      status: 'ready',
+      pending: 0,
+      processing: 0,
+      failed: 0,
+      complete: 1,
+    });
+    const refresh = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 'online',
+        profile: { dynamic: [], static: [] },
+        memories: [],
+        ingestion: {
+          status: 'attention',
+          pending: 0,
+          processing: 0,
+          failed: 1,
+          complete: 0,
+          message: '1 reflection needs memory indexing attention.',
+        },
+      } satisfies MemoryRefreshResult)
+      .mockResolvedValueOnce({
+        status: 'online',
+        profile: { dynamic: [], static: [] },
+        memories: [],
+        ingestion: {
+          status: 'ready',
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          complete: 1,
+        },
+      } satisfies MemoryRefreshResult);
+    setMemoryRefresh(refresh, [], retryIngestion);
+
+    render(<ReflectionsPage />);
+
+    const retryButton = await screen.findByRole('button', { name: 'Retry indexing' });
+    fireEvent.click(retryButton);
+
+    await waitFor(() => expect(retryIngestion).toHaveBeenCalledOnce());
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Memory index is ready')).toBeInTheDocument();
+  });
+
   it('keeps a calm local-first view when Supermemory is offline', async () => {
     setMemoryRefresh(vi.fn().mockRejectedValue(new Error('offline')));
 
@@ -61,9 +166,16 @@ describe('ReflectionsPage', () => {
   });
 });
 
-function setMemoryRefresh(refresh: () => Promise<MemoryRefreshResult>): void {
+function setMemoryRefresh(
+  refresh: () => Promise<MemoryRefreshResult>,
+  entries: unknown[] = [],
+  retryIngestion: () => Promise<unknown> = vi.fn().mockResolvedValue(undefined),
+): void {
   Object.defineProperty(window, 'afterthought', {
     configurable: true,
-    value: { memory: { refresh } },
+    value: {
+      memory: { refresh, retryIngestion },
+      entries: { list: vi.fn().mockResolvedValue(entries) },
+    },
   });
 }
