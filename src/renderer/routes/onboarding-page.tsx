@@ -76,22 +76,13 @@ export function OnboardingPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="flex items-center justify-between gap-6">
+        <header className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-primary">
               <NotebookPen className="h-4 w-4" aria-hidden="true" />
             </div>
             <span className="font-sans text-sm font-semibold">Afterthought</span>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={finish}
-            aria-label="Skip onboarding"
-          >
-            Skip tour
-          </Button>
         </header>
 
         <div className="flex flex-1 items-center py-10 sm:py-14">
@@ -139,15 +130,20 @@ export function OnboardingPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  className="group gap-0 transition-[color,background-color,border-color,transform,opacity,gap] hover:gap-2 disabled:hover:gap-0"
                   onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))}
                   disabled={isFirst}
                   aria-label="Previous slide"
                 >
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  <ArrowLeft
+                    className="h-4 w-0 translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100 group-disabled:w-0 group-disabled:opacity-0"
+                    aria-hidden="true"
+                  />
                   Back
                 </Button>
                 <Button
                   type="button"
+                  className="group gap-0 transition-[color,background-color,border-color,transform,opacity,gap] hover:gap-2"
                   onClick={() => {
                     if (isLast) {
                       finish();
@@ -160,9 +156,15 @@ export function OnboardingPage() {
                 >
                   {isLast ? 'Open Calendar' : 'Continue'}
                   {isLast ? (
-                    <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                    <CalendarDays
+                      className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    <ArrowRight
+                      className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100"
+                      aria-hidden="true"
+                    />
                   )}
                 </Button>
               </div>
@@ -179,10 +181,10 @@ export function OnboardingPage() {
 function FeaturePreview({ kind }: { kind: PreviewKind }) {
   return (
     <div
-      className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border/80 bg-card/70 p-3 shadow-[0_24px_80px_hsl(var(--primary)/0.1)] sm:min-h-[30rem] sm:p-5"
+      className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border/80 bg-card/70 p-3 shadow-[0_20px_64px_hsl(var(--primary)/0.045)] sm:min-h-[30rem] sm:p-5"
       aria-label="Afterthought app preview"
     >
-      <div className="flex h-full min-h-[20rem] flex-col overflow-hidden rounded-xl border border-border/80 bg-background shadow-[0_12px_40px_hsl(var(--primary)/0.08)] sm:min-h-[27rem]">
+      <div className="flex h-full min-h-[20rem] flex-col overflow-hidden rounded-xl border border-border/80 bg-background shadow-[0_10px_32px_hsl(var(--primary)/0.035)] sm:min-h-[27rem]">
         <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/70 px-4">
           <span className="h-2 w-2 rounded-full bg-primary/30" />
           <span className="h-2 w-2 rounded-full bg-primary/20" />
