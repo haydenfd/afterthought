@@ -184,7 +184,8 @@ function buildQuestionContext(
 
 function formatRecentEntry(entry: JournalEntry): string {
   const themes = entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : '';
-  return `- [${entry.createdAt.slice(0, 10)}] ${entry.content.slice(0, 1_200)}${themes}`;
+  const followUp = entry.deeperReflection?.response?.trim();
+  return `- [${entry.createdAt.slice(0, 10)}] ${entry.content.slice(0, 1_200)}${followUp ? ` Follow-up response: ${followUp.slice(0, 1_200)}` : ''}${themes}`;
 }
 
 function collectRecentQuestions(entries: JournalEntry[]): string[] {

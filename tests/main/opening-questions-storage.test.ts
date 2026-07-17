@@ -25,7 +25,7 @@ const sampleBundle: OpeningQuestionsBundle = {
     'What changed when you kept the phone cutoff last night?',
     'What are you learning about protecting your mornings?',
   ],
-  generatedAt: '2026-07-11T00:00:00.000Z',
+  generatedAt: new Date().toISOString(),
 };
 const sampleSourceMemory: MemoryEvidenceItem = {
   id: 'memory-one',
@@ -82,7 +82,7 @@ describe('opening questions storage', () => {
     expect(await storage.get()).toBeNull();
   });
 
-  it('reads legacy cached questions without discarding them', async () => {
+  it('rejects stale legacy cached questions', async () => {
     const bundlePath = await createTemporaryBundlePath();
     await writeFile(
       bundlePath,
@@ -97,7 +97,19 @@ describe('opening questions storage', () => {
     );
     const storage = createOpeningQuestionsStorage(bundlePath);
 
-    expect(await storage.get()).toEqual(sampleBundle);
+    expect(await storage.get()).toBeNull();
+  });
+
+  it('rejects a generated bundle older than the active session window', async () => {
+    const bundlePath = await createTemporaryBundlePath();
+    await writeFile(
+      bundlePath,
+      JSON.stringify({ ...sampleBundle, generatedAt: '2020-01-01T00:00:00.000Z' }),
+      'utf8',
+    );
+    const storage = createOpeningQuestionsStorage(bundlePath);
+
+    expect(await storage.get()).toBeNull();
   });
 });
 

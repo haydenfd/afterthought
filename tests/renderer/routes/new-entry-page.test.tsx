@@ -1,10 +1,9 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { NewEntryPage } from '@/routes/new-entry-page';
 import { DraftProvider } from '@/state/draft-context';
 import type {
-  DeeperQuestionResult,
   MemoryEvidenceItem,
   OpeningQuestionsResult,
 } from '../../../src/shared/reflection';
@@ -125,7 +124,7 @@ describe('NewEntryPage', () => {
     });
   });
 
-  it('enables deeper reflection after a concise meaningful response', async () => {
+  it('keeps the writing session focused on the primary reflection', async () => {
     setAfterthoughtApi(
       vi.fn().mockResolvedValue({ questions: null, source: 'fallback' }),
     );
@@ -136,7 +135,7 @@ describe('NewEntryPage', () => {
       target: { value: 'I finally called my dad today.' },
     });
 
-    expect(screen.getByRole('button', { name: 'Go deeper' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Go deeper' })).not.toBeInTheDocument();
   });
 
   it('falls back to the static prompt if the IPC call rejects', async () => {
@@ -216,94 +215,6 @@ describe('NewEntryPage', () => {
       content: 'A thought worth keeping.',
     });
   });
-
-  it('generates at most one deeper question after writing and saves the whole session', async () => {
-    const create = vi.fn().mockResolvedValue({ id: 'entry-id' });
-    let resolveDeeper!: (result: DeeperQuestionResult) => void;
-    const deeperQuestion = vi.fn().mockReturnValue(
-      new Promise<DeeperQuestionResult>((resolve) => {
-        resolveDeeper = resolve;
-      }),
-    );
-    const openingQuestions = vi.fn().mockResolvedValue({
-      questions: [
-        'What changed in the routine you were testing?',
-        'What are you learning about protecting your attention?',
-      ],
-      source: 'ai',
-    } satisfies OpeningQuestionsResult);
-    setAfterthoughtApi(openingQuestions, create, deeperQuestion);
-
-    renderPage();
-
-    const initialWriting =
-      'The routine helped until uncertainty made every small interruption feel urgent.';
-    fireEvent.change(await screen.findByLabelText('Journal entry'), {
-      target: { value: initialWriting },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Go deeper' }));
-
-    expect(deeperQuestion).toHaveBeenCalledTimes(1);
-    expect(deeperQuestion).toHaveBeenCalledWith({
-      openingQuestions: [
-        'What changed in the routine you were testing?',
-        'What are you learning about protecting your attention?',
-      ],
-      initialResponse: initialWriting,
-    });
-    expect(screen.getByLabelText('Journal entry')).toHaveAttribute('readonly');
-    expect(screen.queryByLabelText('Deeper reflection')).not.toBeInTheDocument();
-
-    await act(() =>
-      Promise.resolve(
-        resolveDeeper({
-          question:
-            'What makes an interruption feel more certain than the work beside it?',
-          themes: ['attention', 'uncertainty'],
-          source: 'ai',
-          provenance: {
-            strategy: 'connect-behavior-and-effect',
-            sourceMemoryIds: ['memory-one'],
-            sourceMemories: [sourceMemory],
-          },
-        }),
-      ),
-    );
-
-    expect(screen.queryByRole('button', { name: 'Go deeper' })).not.toBeInTheDocument();
-    expect(screen.getByText('This question is connected to')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Deeper reflection'), {
-      target: {
-        value: 'It offers a quick answer when the larger work still feels open.',
-      },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
-
-    await completeCloseAnimation();
-
-    expect(
-      await screen.findByText('Your reflection has been saved.'),
-    ).toBeInTheDocument();
-    expect(create).toHaveBeenCalledWith({
-      prompt: 'What changed in the routine you were testing?',
-      openingQuestions: [
-        'What changed in the routine you were testing?',
-        'What are you learning about protecting your attention?',
-      ],
-      content: initialWriting,
-      deeperReflection: {
-        question:
-          'What makes an interruption feel more certain than the work beside it?',
-        response: 'It offers a quick answer when the larger work still feels open.',
-        provenance: {
-          strategy: 'connect-behavior-and-effect',
-          sourceMemoryIds: ['memory-one'],
-          sourceMemories: [sourceMemory],
-        },
-      },
-      themes: ['attention', 'uncertainty'],
-    });
-  });
 });
 
 async function completeCloseAnimation(): Promise<void> {
@@ -329,13 +240,12 @@ function renderPage(): void {
 function setAfterthoughtApi(
   openingQuestions: () => Promise<OpeningQuestionsResult>,
   create = vi.fn(),
-  deeperQuestion = vi.fn(),
 ): void {
   Object.defineProperty(window, 'afterthought', {
     configurable: true,
     value: {
       entries: { create, get: vi.fn(), list: vi.fn().mockResolvedValue([]) },
-      reflection: { openingQuestions, deeperQuestion },
+      reflection: { openingQuestions },
     },
   });
 }

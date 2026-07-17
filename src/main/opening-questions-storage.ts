@@ -8,6 +8,8 @@ import type {
   OpeningQuestionsBundle,
 } from '../shared/reflection';
 
+const cacheLifetimeMs = 15 * 60 * 1_000;
+
 export interface OpeningQuestionsStorage {
   get(): Promise<OpeningQuestionsBundle | null>;
   set(bundle: OpeningQuestionsBundle): Promise<void>;
@@ -21,7 +23,17 @@ export function createOpeningQuestionsStorage(
     try {
       const raw = await readFile(bundlePath, 'utf8');
       const parsed: unknown = JSON.parse(raw);
-      return parseBundle(parsed);
+      const bundle = parseBundle(parsed);
+      if (!bundle) {
+        return null;
+      }
+
+      const generatedAt = new Date(bundle.generatedAt).getTime();
+      if (!Number.isFinite(generatedAt) || Date.now() - generatedAt > cacheLifetimeMs) {
+        return null;
+      }
+
+      return bundle;
     } catch {
       return null;
     }

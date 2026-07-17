@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   LoaderCircle,
-  MoveDown,
 } from 'lucide-react';
 import { type AnimationEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useBeforeUnload, useNavigate } from 'react-router-dom';
@@ -14,11 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useDraft } from '@/state/draft-context';
-import type {
-  MemoryEvidenceItem,
-  OpeningQuestions,
-  ReflectionProvenance,
-} from '../../shared/reflection';
+import type { MemoryEvidenceItem, OpeningQuestions } from '../../shared/reflection';
 
 const fallbackQuestions = [
   'What has been taking up more space in your mind than you expected?',
@@ -30,9 +25,7 @@ export function NewEntryPage() {
   const { draft, setDraft, isFinished, finishEntry, resetDraft } = useDraft();
   const navigate = useNavigate();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const deeperTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveInProgress = useRef(false);
-  const deeperRequestInProgress = useRef(false);
   const hasRequestedPrompt = useRef(false);
   const bypassPopGuard = useRef(false);
   const hasCompletedClose = useRef(false);
@@ -44,22 +37,12 @@ export function NewEntryPage() {
     MemoryEvidenceItem[]
   >([]);
   const [isOpeningContextExpanded, setIsOpeningContextExpanded] = useState(false);
-  const [isDeeperContextExpanded, setIsDeeperContextExpanded] = useState(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
-  const [deeperQuestion, setDeeperQuestion] = useState<string | null>(null);
-  const [deeperResponse, setDeeperResponse] = useState('');
-  const [deeperThemes, setDeeperThemes] = useState<string[]>([]);
-  const [deeperProvenance, setDeeperProvenance] = useState<ReflectionProvenance | null>(
-    null,
-  );
-  const [isGeneratingDeeper, setIsGeneratingDeeper] = useState(false);
-  const [deeperError, setDeeperError] = useState<string | null>(null);
   const [startedAt] = useState(() => new Date());
-  const wordCount = countWords(`${draft} ${deeperResponse}`);
+  const wordCount = countWords(draft);
   const questions: OpeningQuestions = aiQuestions ?? [...fallbackQuestions];
   const primaryQuestion = questions[0];
-  const hasUnsavedContent = draft.trim().length > 0 || deeperResponse.trim().length > 0;
-  const canGoDeeper = countWords(draft) >= 5;
+  const hasUnsavedContent = draft.trim().length > 0;
 
   useEffect(() => {
     if (hasRequestedPrompt.current) {
@@ -94,10 +77,6 @@ export function NewEntryPage() {
   useEffect(() => {
     autosizeTextarea(textareaRef.current);
   }, [draft]);
-
-  useEffect(() => {
-    autosizeTextarea(deeperTextareaRef.current);
-  }, [deeperResponse]);
 
   useBeforeUnload(
     useCallback(
@@ -232,16 +211,6 @@ export function NewEntryPage() {
         ...(openingSourceMemories.length > 0
           ? { openingContext: openingSourceMemories }
           : {}),
-        ...(deeperQuestion
-          ? {
-              deeperReflection: {
-                question: deeperQuestion,
-                ...(deeperResponse.trim() ? { response: deeperResponse.trim() } : {}),
-                ...(deeperProvenance ? { provenance: deeperProvenance } : {}),
-              },
-            }
-          : {}),
-        ...(deeperThemes.length > 0 ? { themes: deeperThemes } : {}),
       });
       setIsClosing(true);
     } catch {
@@ -249,39 +218,6 @@ export function NewEntryPage() {
     } finally {
       saveInProgress.current = false;
       setIsSaving(false);
-    }
-  }
-
-  async function handleGoDeeper(): Promise<void> {
-    if (
-      !canGoDeeper ||
-      deeperQuestion ||
-      isGeneratingDeeper ||
-      deeperRequestInProgress.current
-    ) {
-      return;
-    }
-
-    deeperRequestInProgress.current = true;
-    setIsGeneratingDeeper(true);
-    setDeeperError(null);
-
-    try {
-      const result = await window.afterthought.reflection.deeperQuestion({
-        openingQuestions: questions,
-        initialResponse: draft.trim(),
-      });
-      setDeeperQuestion(result.question);
-      setDeeperThemes(result.themes);
-      setDeeperProvenance(result.provenance);
-      window.requestAnimationFrame(() => deeperTextareaRef.current?.focus());
-    } catch {
-      deeperRequestInProgress.current = false;
-      setDeeperError(
-        'A deeper question is not available right now. You can still finish this reflection.',
-      );
-    } finally {
-      setIsGeneratingDeeper(false);
     }
   }
 
@@ -363,7 +299,6 @@ export function NewEntryPage() {
               <Textarea
                 ref={textareaRef}
                 value={draft}
-                readOnly={isGeneratingDeeper || deeperQuestion !== null}
                 onChange={(event) => {
                   setDraft(event.target.value);
                   autosizeTextarea(event.target);
@@ -376,53 +311,6 @@ export function NewEntryPage() {
                 aria-label="Journal entry"
               />
 
-              {isGeneratingDeeper ? (
-                <div className="mt-10 border-t border-border pt-10" aria-live="polite">
-                  <LoaderCircle
-                    className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Looking for one useful place to go deeper…
-                  </p>
-                </div>
-              ) : null}
-
-              {deeperQuestion ? (
-                <section
-                  className="route-content-enter mt-10 border-t border-border pt-10"
-                  aria-labelledby="deeper-question"
-                >
-                  <p className="mb-4 text-sm text-muted-foreground">A little deeper</p>
-                  <h2
-                    id="deeper-question"
-                    className="max-w-4xl writing-text text-2xl leading-9"
-                  >
-                    {deeperQuestion}
-                  </h2>
-                  <MemoryThreadContext
-                    label="This question is connected to"
-                    memories={deeperProvenance?.sourceMemories ?? []}
-                    expanded={isDeeperContextExpanded}
-                    onToggle={() =>
-                      setIsDeeperContextExpanded((isExpanded) => !isExpanded)
-                    }
-                    className="mt-5"
-                  />
-                  <Textarea
-                    ref={deeperTextareaRef}
-                    value={deeperResponse}
-                    onChange={(event) => {
-                      setDeeperResponse(event.target.value);
-                      autosizeTextarea(event.target);
-                    }}
-                    placeholder="Stay with this for as long as it is useful."
-                    className="mt-8 min-h-[220px] border-0 bg-transparent px-0 py-0 writing-text text-[21px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0"
-                    aria-label="Deeper reflection"
-                  />
-                </section>
-              ) : null}
-
               <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
                 <p className="text-sm text-muted-foreground">
                   {wordCount === 0
@@ -430,35 +318,16 @@ export function NewEntryPage() {
                     : `${wordCount} ${wordCount === 1 ? 'word' : 'words'}`}
                 </p>
                 <div className="flex items-center gap-2">
-                  {!deeperQuestion ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      disabled={isSaving || isGeneratingDeeper || !canGoDeeper}
-                      onClick={() => void handleGoDeeper()}
-                    >
-                      <MoveDown className="h-4 w-4" aria-hidden="true" />
-                      {deeperError ? 'Try going deeper again' : 'Go deeper'}
-                    </Button>
-                  ) : null}
                   <Button
                     type="button"
                     size="sm"
-                    disabled={
-                      isSaving || isClosing || isGeneratingDeeper || !draft.trim()
-                    }
+                    disabled={isSaving || isClosing || !draft.trim()}
                     onClick={() => void handleFinishEntry()}
                   >
                     {isSaving ? 'Finishing…' : 'Finish'}
                   </Button>
                 </div>
               </footer>
-              {deeperError ? (
-                <p className="mt-3 text-sm text-muted-foreground" role="status">
-                  {deeperError}
-                </p>
-              ) : null}
               {saveError ? (
                 <p className="mt-3 text-sm text-muted-foreground" role="alert">
                   {saveError}

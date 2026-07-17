@@ -127,6 +127,29 @@ describe('generateOpeningQuestions', () => {
     expect(systemMessage).toContain('JSON array of exactly two strings');
   });
 
+  it('includes an authored historical follow-up response in the next-session context', async () => {
+    vi.mocked(callGroq).mockResolvedValue(validGroqResponse);
+    const entryWithFollowUp: JournalEntry = {
+      ...recentEntry,
+      deeperReflection: {
+        question: 'What changed underneath the routine?',
+        response: 'The routine helped because mornings felt less rushed.',
+      },
+    };
+
+    await generateOpeningQuestions(
+      entryStorageStub([entryWithFollowUp]),
+      Promise.resolve(clientWithMemory()),
+      preferencesStub(),
+    );
+
+    const [messages] = vi.mocked(callGroq).mock.calls[0]!;
+    const userMessage = messages.find((message) => message.role === 'user')?.content;
+    expect(userMessage).toContain(
+      'Follow-up response: The routine helped because mornings felt less rushed.',
+    );
+  });
+
   it('asks for reflective observations instead of yes-or-no experiment check-ins', async () => {
     vi.mocked(callGroq).mockResolvedValue(validGroqResponse);
 

@@ -126,10 +126,10 @@ function buildUserMessage(
 
   parts.push(
     'Their most recent journal entries, newest first (this is their canonical recent history):',
-    ...recentEntries.map(
-      (entry) =>
-        `- [${entry.createdAt.slice(0, 10)}] Asked: "${entry.openingQuestions?.join('" / "') ?? entry.prompt}" — ${entry.content}${entry.deeperReflection ? ` Deeper question: "${entry.deeperReflection.question}"` : ''}${entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : ''}`,
-    ),
+    ...recentEntries.map((entry) => {
+      const followUp = entry.deeperReflection?.response?.trim();
+      return `- [${entry.createdAt.slice(0, 10)}] Asked: "${entry.openingQuestions?.join('" / "') ?? entry.prompt}" — ${entry.content}${followUp ? ` Follow-up response: ${followUp}` : ''}${entry.deeperReflection ? ` Generated question: "${entry.deeperReflection.question}"` : ''}${entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : ''}`;
+    }),
   );
 
   const profileLines = [...(profile?.dynamic ?? []), ...(profile?.static ?? [])];
