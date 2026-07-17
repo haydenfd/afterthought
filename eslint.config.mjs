@@ -60,6 +60,7 @@ export default tseslint.config(
       'src/shared/**/*.ts',
       'electron.vite.config.ts',
       'vitest.config.ts',
+      'scripts/**/*.mjs',
     ],
     languageOptions: {
       parserOptions: {

@@ -22,6 +22,9 @@ describe('OnboardingPage', () => {
       screen.getByRole('heading', { name: 'Welcome to Afterthought' }),
     ).toBeInTheDocument();
     expect(screen.getByText('1 of 5')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Skip onboarding' }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -41,15 +44,6 @@ describe('OnboardingPage', () => {
       screen.getByRole('heading', { name: 'Welcome to Afterthought' }),
     ).toBeInTheDocument();
     expect(screen.getByText('1 of 5')).toBeInTheDocument();
-  });
-
-  it('skips the tour and opens Calendar', async () => {
-    renderOnboarding();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skip onboarding' }));
-
-    expect(await screen.findByText(/entries this month/)).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Primary' })).toBeInTheDocument();
   });
 
   it('opens Calendar after the final slide', async () => {
