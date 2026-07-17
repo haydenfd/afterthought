@@ -86,6 +86,20 @@ npm run lint
 npm run test
 ```
 
+## Publishing a release
+
+Push a version tag to build installers in GitHub Actions and attach them to a
+GitHub Release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release workflow publishes macOS `.dmg` and `.zip` files for Apple Silicon
+and Intel, plus Windows `.exe` and Linux `.AppImage`/`.deb` installers. The tag
+should match the version in `package.json`.
+
 ## Two-minute demo
 
 For the strongest demo, pre-seed at least three entries on different dates that
@@ -214,3 +228,7 @@ into a failed save or an unsupported conclusion.
 
 The app prioritizes a coherent source-backed continuity loop over adding unrelated
 AI surfaces.
+
+## License
+
+Afterthought is released under the [MIT License](LICENSE).

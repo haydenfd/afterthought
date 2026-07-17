@@ -1,17 +1,20 @@
-name: Release
+name: Release installers
 
 on:
-  workflow_dispatch:
   push:
     tags:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build ${{ matrix.platform }}
+  build:
+    name: Build ${{ matrix.platform }} installers
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -19,31 +22,61 @@ jobs:
         include:
           - platform: macOS
             os: macos-latest
-            target: --mac --x64 --arm64
+            target: mac
           - platform: Windows
             os: windows-latest
-            target: --win --x64
+            target: win
           - platform: Linux
             os: ubuntu-latest
-            target: --linux --x64
+            target: linux
 
     steps:
-      - name: Check out repository
+      - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 26
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
+      - name: Build application
         run: npm run build
 
-      - name: Publish release artifacts
-        run: npm run release -- ${{ matrix.target }}
+      - name: Package installers
+        run: npx electron-builder --${{ matrix.target }} --publish never
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.target }}
+          path: release/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release and upload installers
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Afterthought $GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

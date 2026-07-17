@@ -2,6 +2,8 @@
   "name": "afterthought",
   "version": "0.1.0",
   "description": "A reflective desktop journaling shell for Afterthought.",
+  "license": "MIT",
+  "repository": "github:haydenfd/afterthought",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
