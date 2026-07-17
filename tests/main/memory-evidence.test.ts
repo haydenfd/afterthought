@@ -103,6 +103,40 @@ describe('memory evidence retrieval', () => {
     ]);
   });
 
+  it('keeps source entry IDs supplied in direct memory metadata', async () => {
+    const client = {
+      search: {
+        memories: vi.fn().mockResolvedValue({
+          results: [
+            {
+              id: 'memory-one',
+              memory: 'The phone cutoff made evenings calmer.',
+              similarity: 0.86,
+              metadata: { entryId: sourceEntryId },
+              documents: [{ id: 'direct-memory-document' }],
+            },
+          ],
+        }),
+      },
+      post: vi.fn().mockResolvedValue({ documents: [] }),
+    } as unknown as SupermemoryClient;
+
+    await expect(
+      retrieveMemoryEvidence(client, ['phone cutoff'], {
+        limit: 4,
+        minimumSimilarity: 0.58,
+      }),
+    ).resolves.toEqual([
+      {
+        id: 'memory-one',
+        text: 'The phone cutoff made evenings calmer.',
+        similarity: 0.86,
+        sourceDocumentIds: ['direct-memory-document'],
+        sourceEntryIds: [sourceEntryId],
+      },
+    ]);
+  });
+
   it('filters weak or malformed matches', async () => {
     const client = {
       search: {

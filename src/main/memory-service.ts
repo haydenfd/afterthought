@@ -198,9 +198,16 @@ function sourceIds(record: Record<string, unknown>): {
   sourceEntryIds?: string[];
 } {
   const documents = Array.isArray(record.documents) ? record.documents : [];
+  const documentIds = Array.isArray(record.documentIds) ? record.documentIds : [];
+  const metadata = asRecord(record.metadata);
   const sourceDocumentIds = documents
     .map((document) => asRecord(document)?.id)
     .filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+  sourceDocumentIds.push(
+    ...documentIds.filter(
+      (id): id is string => typeof id === 'string' && id.trim().length > 0,
+    ),
+  );
   const sourceEntryIds = documents.flatMap((document) => {
     const documentRecord = asRecord(document);
     const metadata = asRecord(documentRecord?.metadata);
@@ -208,6 +215,11 @@ function sourceIds(record: Record<string, unknown>): {
       (value): value is string => typeof value === 'string' && value.trim().length > 0,
     );
   });
+  sourceEntryIds.push(
+    ...[metadata?.entryId, metadata?.sourceEntryId].filter(
+      (id): id is string => typeof id === 'string' && id.trim().length > 0,
+    ),
+  );
 
   return {
     ...(sourceDocumentIds.length > 0

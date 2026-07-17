@@ -110,6 +110,7 @@ export function normalizeSearchResult(
   }
 
   const documents = Array.isArray(record.documents) ? record.documents : [];
+  const metadata = asRecord(record.metadata);
   const sourceDocumentIds = uniqueStrings(
     documents
       .map((document) => {
@@ -118,8 +119,11 @@ export function normalizeSearchResult(
       })
       .filter((documentId): documentId is string => !!documentId),
   );
-  const sourceEntryIds = uniqueStrings(documents.flatMap(resolveEntryIdsFromDocument));
-  const metadata = asRecord(record.metadata);
+  const sourceEntryIds = uniqueStrings([
+    ...documents.flatMap(resolveEntryIdsFromDocument),
+    stringValue(metadata?.entryId) ?? '',
+    stringValue(metadata?.sourceEntryId) ?? '',
+  ]);
   const sourceDate =
     stringValue(metadata?.sourceDate) ??
     documents

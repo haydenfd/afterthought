@@ -93,6 +93,39 @@ describe('memory service', () => {
     });
   });
 
+  it('normalizes direct memory metadata into source links', async () => {
+    const entryId = 'f408164b-4355-4da3-9c64-944d8f7129fb';
+    const client = {
+      profile: vi.fn().mockResolvedValue({ profile: { static: [], dynamic: [] } }),
+      post: vi.fn().mockResolvedValue({
+        memoryEntries: [
+          {
+            id: 'memory-one',
+            memory: 'The phone cutoff made evenings calmer.',
+            metadata: {
+              entryId,
+              sourceDate: '2026-07-10T15:30:00-07:00',
+            },
+            documentIds: ['direct-memory-document'],
+          },
+        ],
+      }),
+    } as unknown as SupermemoryClient;
+
+    await expect(
+      createMemoryService(Promise.resolve(client)).refresh(),
+    ).resolves.toMatchObject({
+      memories: [
+        {
+          id: 'memory-one',
+          sourceDate: '2026-07-10T15:30:00-07:00',
+          sourceDocumentIds: ['direct-memory-document'],
+          sourceEntryIds: [entryId],
+        },
+      ],
+    });
+  });
+
   it('normalizes complete request failure into an offline result', async () => {
     const client = {
       profile: vi.fn().mockRejectedValue(new Error('offline')),
