@@ -148,6 +148,9 @@ describe('generateOpeningQuestions', () => {
     expect(userMessage).toContain(
       'Follow-up response: The routine helped because mornings felt less rushed.',
     );
+    expect(userMessage).toContain(
+      'Generated follow-up prompt (not an answer): "What changed underneath the routine?"',
+    );
   });
 
   it('asks for reflective observations instead of yes-or-no experiment check-ins', async () => {

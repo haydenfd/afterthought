@@ -24,6 +24,8 @@ Each question must be a single warm, curious sentence under 30 words. Guide writ
 
 Retrieved memories are optional evidence, not facts you must mention. One match is not a pattern. Use recurrence language only when at least two distinct recent journal entries or verified source documents support it, and stay with recent writing when older context is weak.
 
+Generated questions in the history are prompts, not memories or answers. Never infer that someone addressed a prompt unless their authored response says so.
+
 Respond with ONLY a JSON array of exactly two strings, nothing else:
 ["first question", "second question"]`;
 
@@ -128,7 +130,10 @@ function buildUserMessage(
     'Their most recent journal entries, newest first (this is their canonical recent history):',
     ...recentEntries.map((entry) => {
       const followUp = entry.deeperReflection?.response?.trim();
-      return `- [${entry.createdAt.slice(0, 10)}] Asked: "${entry.openingQuestions?.join('" / "') ?? entry.prompt}" — ${entry.content}${followUp ? ` Follow-up response: ${followUp}` : ''}${entry.deeperReflection ? ` Generated question: "${entry.deeperReflection.question}"` : ''}${entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : ''}`;
+      const generatedPrompt = entry.deeperReflection
+        ? ` Generated follow-up prompt (not an answer): "${entry.deeperReflection.question}"`
+        : '';
+      return `- [${entry.createdAt.slice(0, 10)}] Asked: "${entry.openingQuestions?.join('" / "') ?? entry.prompt}" — ${entry.content}${followUp ? ` Follow-up response: ${followUp}` : ''}${generatedPrompt}${entry.themes?.length ? ` Themes: ${entry.themes.join(', ')}.` : ''}`;
     }),
   );
 
