@@ -287,7 +287,7 @@ export function NewEntryPage() {
                   {questions[1]}
                 </p>
                 <MemoryThreadContext
-                  label="A thread you may be returning to"
+                  label="Supermemory context"
                   memories={openingSourceMemories}
                   expanded={isOpeningContextExpanded}
                   onToggle={() =>
@@ -384,6 +384,9 @@ function MemoryThreadContext({
     >
       <p className="font-sans text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/75">
         {label}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground/75">
+        Source moments that helped shape today&apos;s opening questions.
       </p>
       <ul className="mt-2 space-y-2">
         {visibleMemories.map((memory) => (

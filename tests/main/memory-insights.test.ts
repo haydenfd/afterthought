@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MemoryItem } from '../../src/shared/memory';
 
 vi.mock('../../src/main/groq-client', () => ({
   callGroq: vi.fn(),
+  isGroqConfigured: vi.fn().mockReturnValue(true),
 }));
 
 import { callGroq } from '../../src/main/groq-client';
@@ -25,7 +26,12 @@ const memories: MemoryItem[] = [
 ];
 
 beforeEach(() => {
+  vi.stubEnv('GROQ_API_KEY', 'test-key');
   vi.mocked(callGroq).mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('memory insight synthesis', () => {
@@ -49,18 +55,21 @@ describe('memory insight synthesis', () => {
 
     await expect(
       generateMemoryThreads(memories, { static: [], dynamic: [] }),
-    ).resolves.toEqual([
-      {
-        id: 'attention-and-rest',
-        title: 'Attention and rest',
-        summary:
-          'A new boundary is helping, while uncertainty still makes it harder to let the day end.',
-        kind: 'shifting',
-        sourceMemoryIds: ['memory-one', 'memory-two'],
-        sourceEntryIds: ['entry-one', 'entry-two'],
-        nextQuestion: 'What helps the boundary feel chosen when uncertainty returns?',
-      },
-    ]);
+    ).resolves.toEqual({
+      status: 'available',
+      threads: [
+        {
+          id: 'attention-and-rest',
+          title: 'Attention and rest',
+          summary:
+            'A new boundary is helping, while uncertainty still makes it harder to let the day end.',
+          kind: 'shifting',
+          sourceMemoryIds: ['memory-one', 'memory-two'],
+          sourceEntryIds: ['entry-one', 'entry-two'],
+          nextQuestion: 'What helps the boundary feel chosen when uncertainty returns?',
+        },
+      ],
+    });
   });
 
   it('drops threads that cite memories which were not retrieved', async () => {
@@ -80,7 +89,7 @@ describe('memory insight synthesis', () => {
 
     await expect(
       generateMemoryThreads(memories, { static: [], dynamic: [] }),
-    ).resolves.toEqual([]);
+    ).resolves.toMatchObject({ status: 'available', threads: [] });
   });
 
   it('does not let one entry become a recurring or steady pattern', async () => {
@@ -100,7 +109,12 @@ describe('memory insight synthesis', () => {
 
     await expect(
       generateMemoryThreads([memories[0]!], { static: [], dynamic: [] }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual({
+      status: 'available',
+      threads: [],
+      message:
+        'No grounded thread was found yet. Source memories are still available below.',
+    });
   });
 
   it('returns no interpretation when Groq is unavailable', async () => {
@@ -108,6 +122,11 @@ describe('memory insight synthesis', () => {
 
     await expect(
       generateMemoryThreads(memories, { static: [], dynamic: [] }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual({
+      status: 'unavailable',
+      threads: [],
+      message:
+        'Groq synthesis is unavailable right now. Source memories are still available below.',
+    });
   });
 });

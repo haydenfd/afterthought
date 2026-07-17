@@ -2,6 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { SupermemoryClient } from '../../src/main/supermemory-client';
 import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
+
+vi.mock('../../src/main/memory-insights', () => ({
+  generateMemoryThreads: vi.fn().mockResolvedValue({
+    status: 'unavailable',
+    threads: [],
+    message:
+      'Groq synthesis is not configured. Source memories are still available below.',
+  }),
+}));
+
 import { createMemoryService } from '../../src/main/memory-service';
 
 describe('memory service', () => {
@@ -45,6 +55,11 @@ describe('memory service', () => {
         },
         { id: 'two', text: 'Rest has become easier to protect.' },
       ],
+      insights: {
+        status: 'unavailable',
+        message:
+          'Groq synthesis is not configured. Source memories are still available below.',
+      },
     });
     expect(post).toHaveBeenNthCalledWith(2, '/v4/memories/list', {
       body: {
@@ -69,6 +84,11 @@ describe('memory service', () => {
       status: 'online',
       profile: { static: [], dynamic: [] },
       memories: [{ id: 'one', text: 'A remembered pattern.' }],
+      insights: {
+        status: 'unavailable',
+        message:
+          'Groq synthesis is not configured. Source memories are still available below.',
+      },
       message: 'Some memory details could not be loaded. Try refreshing again.',
     });
   });

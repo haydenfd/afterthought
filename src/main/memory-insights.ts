@@ -1,4 +1,4 @@
-import { callGroq } from './groq-client';
+import { callGroq, isGroqConfigured } from './groq-client';
 import type {
   MemoryItem,
   MemoryProfile,
@@ -25,12 +25,27 @@ Each thread needs a short title, a grounded summary, a kind, the ids of the memo
 Return ONLY this JSON object:
 {"threads":[{"id":"short-id","title":"short title","summary":"grounded summary","kind":"present|unresolved|shifting|steady|progress","sourceMemoryIds":["memory-id"],"nextQuestion":"optional question"}]}`;
 
+export type MemoryInsightResult = {
+  status: 'available' | 'unavailable';
+  threads: MemoryThread[];
+  message?: string;
+};
+
 export async function generateMemoryThreads(
   memories: MemoryItem[],
   profile: MemoryProfile,
-): Promise<MemoryThread[]> {
+): Promise<MemoryInsightResult> {
   if (memories.length === 0) {
-    return [];
+    return { status: 'available', threads: [] };
+  }
+
+  if (!isGroqConfigured()) {
+    return {
+      status: 'unavailable',
+      threads: [],
+      message:
+        'Groq synthesis is not configured. Source memories are still available below.',
+    };
   }
 
   const response = await callGroq(
@@ -42,10 +57,25 @@ export async function generateMemoryThreads(
   );
 
   if (!response) {
-    return [];
+    return {
+      status: 'unavailable',
+      threads: [],
+      message:
+        'Groq synthesis is unavailable right now. Source memories are still available below.',
+    };
   }
 
-  return parseThreads(response, memories);
+  const threads = parseThreads(response, memories);
+  return {
+    status: 'available',
+    threads,
+    ...(threads.length === 0
+      ? {
+          message:
+            'No grounded thread was found yet. Source memories are still available below.',
+        }
+      : {}),
+  };
 }
 
 function buildContext(memories: MemoryItem[], profile: MemoryProfile): string {

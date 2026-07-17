@@ -103,6 +103,37 @@ describe('ReflectionsPage', () => {
         .getAllByRole('link', { name: 'View source entry' })
         .every((link) => link.getAttribute('href') === '/calendar/2026-07-10'),
     ).toBe(true);
+    expect(screen.getAllByText('July 10, 2026')).not.toHaveLength(0);
+    expect(screen.getByText('The reflection loop')).toBeInTheDocument();
+  });
+
+  it('explains when Groq cannot synthesize threads without hiding source memories', async () => {
+    setMemoryRefresh(
+      vi.fn().mockResolvedValue({
+        status: 'online',
+        profile: { dynamic: [], static: [] },
+        memories: [
+          {
+            id: 'memory-one',
+            text: 'A source moment remains available.',
+          },
+        ],
+        insights: {
+          status: 'unavailable',
+          message:
+            'Groq synthesis is unavailable right now. Source memories are still available below.',
+        },
+      } satisfies MemoryRefreshResult),
+    );
+
+    render(<ReflectionsPage />);
+
+    expect(
+      await screen.findByText(
+        'Groq synthesis is unavailable right now. Source memories are still available below.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('A source moment remains available.')).toBeInTheDocument();
   });
 
   it('offers a retry when an entry still needs indexing', async () => {

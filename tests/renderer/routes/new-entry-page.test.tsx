@@ -99,9 +99,7 @@ describe('NewEntryPage', () => {
 
     renderPage();
 
-    expect(
-      await screen.findByText('A thread you may be returning to'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Supermemory context')).toBeInTheDocument();
     expect(
       screen.getByText('Started a phone cutoff routine at 11pm.'),
     ).toBeInTheDocument();

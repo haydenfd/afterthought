@@ -2,6 +2,7 @@ import { RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { MemoryIndexStatus } from '@/components/memory/memory-index-status';
+import { MemoryInsightStatus } from '@/components/memory/memory-insight-status';
 import { MemoryThreadList } from '@/components/memory/memory-thread-list';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,6 +130,8 @@ export function ProfilePage() {
             isRetrying={isRetrying}
             onRetry={() => void retryIndexing()}
           />
+
+          <MemoryInsightStatus insights={memory.insights} />
 
           {memory.message ? (
             <p className="text-sm text-muted-foreground" role="status">

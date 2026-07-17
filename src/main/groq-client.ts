@@ -6,6 +6,10 @@ export interface GroqMessage {
   content: string;
 }
 
+export function isGroqConfigured(): boolean {
+  return Boolean(process.env.GROQ_API_KEY?.trim());
+}
+
 interface GroqChatCompletionResponse {
   choices?: Array<{
     message?: {
@@ -23,7 +27,7 @@ export async function callGroq(
     timeoutMs?: number;
   } = {},
 ): Promise<string | null> {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY?.trim();
 
   if (!apiKey) {
     return null;

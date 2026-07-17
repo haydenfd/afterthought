@@ -63,13 +63,24 @@ export function createMemoryService(
         memoriesResult.status === 'fulfilled'
           ? normalizeMemories(memoriesResult.value)
           : [];
-      const threads = await generateMemoryThreads(memories, profile);
+      const insights =
+        memories.length > 0
+          ? await generateMemoryThreads(memories, profile)
+          : undefined;
 
       return {
         status: 'online',
         profile,
         memories,
-        ...(threads.length > 0 ? { threads } : {}),
+        ...(insights
+          ? {
+              insights: {
+                status: insights.status,
+                ...(insights.message ? { message: insights.message } : {}),
+              },
+            }
+          : {}),
+        ...(insights?.threads.length ? { threads: insights.threads } : {}),
         ...(ingestionStatus ? { ingestion: ingestionStatus } : {}),
         ...(partial
           ? {

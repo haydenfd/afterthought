@@ -24,6 +24,11 @@ export type MemoryThread = {
   nextQuestion?: string;
 };
 
+export type MemoryInsightSummary = {
+  status: 'available' | 'unavailable';
+  message?: string;
+};
+
 export type MemoryDocumentStatus =
   | 'unknown'
   | 'queued'
@@ -59,6 +64,7 @@ export interface MemoryRefreshResult {
   profile: MemoryProfile;
   memories: MemoryItem[];
   threads?: MemoryThread[];
+  insights?: MemoryInsightSummary;
   ingestion?: MemoryIngestionSummary;
   message?: string;
 }

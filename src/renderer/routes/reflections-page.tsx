@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { MemoryIndexStatus } from '@/components/memory/memory-index-status';
+import { MemoryInsightStatus } from '@/components/memory/memory-insight-status';
+import { MemoryPipelineNote } from '@/components/memory/memory-pipeline-note';
 import { MemoryThreadList } from '@/components/memory/memory-thread-list';
 import { Button } from '@/components/ui/button';
 import {
@@ -132,6 +134,10 @@ export function ReflectionsPage() {
             onRetry={() => void retryIndexing()}
           />
 
+          <MemoryPipelineNote />
+
+          <MemoryInsightStatus insights={memory.insights} />
+
           {memory.message ? (
             <p className="text-sm text-muted-foreground" role="status">
               {memory.message}
@@ -214,12 +220,16 @@ function MemorySourceLink({
 
   if (sourceEntry) {
     return (
-      <Link
-        to={`/calendar/${formatRouteDate(new Date(sourceEntry.createdAt))}`}
-        className="mt-1 block font-sans text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-      >
-        View source entry
-      </Link>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 font-sans text-xs text-muted-foreground">
+        <span>{formatMemoryDate(sourceEntry.createdAt)}</span>
+        <span aria-hidden="true">·</span>
+        <Link
+          to={`/calendar/${formatRouteDate(new Date(sourceEntry.createdAt))}`}
+          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          View source entry
+        </Link>
+      </div>
     );
   }
 
