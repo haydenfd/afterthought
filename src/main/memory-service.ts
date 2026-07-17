@@ -1,4 +1,9 @@
-import type { MemoryItem, MemoryProfile, MemoryRefreshResult } from '../shared/memory';
+import type {
+  MemoryIngestionSummary,
+  MemoryItem,
+  MemoryProfile,
+  MemoryRefreshResult,
+} from '../shared/memory';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 
 const memoryPageSize = 100;
@@ -19,16 +24,22 @@ export interface MemoryService {
   refresh(): Promise<MemoryRefreshResult>;
 }
 
+type IngestionStatusProvider = {
+  getStatus?: () => Promise<MemoryIngestionSummary>;
+};
+
 export function createMemoryService(
   clientPromise: Promise<SupermemoryClient>,
+  ingestion?: IngestionStatusProvider,
 ): MemoryService {
   return {
     async refresh() {
+      const ingestionStatus = await readIngestionStatus(ingestion);
       let client: SupermemoryClient;
       try {
         client = await clientPromise;
       } catch {
-        return offlineResult();
+        return offlineResult(ingestionStatus);
       }
 
       const [profileResult, memoriesResult] = await Promise.allSettled([
@@ -37,7 +48,7 @@ export function createMemoryService(
       ]);
 
       if (profileResult.status === 'rejected' && memoriesResult.status === 'rejected') {
-        return offlineResult();
+        return offlineResult(ingestionStatus);
       }
 
       const partial =
@@ -53,6 +64,7 @@ export function createMemoryService(
           memoriesResult.status === 'fulfilled'
             ? normalizeMemories(memoriesResult.value)
             : [],
+        ...(ingestionStatus ? { ingestion: ingestionStatus } : {}),
         ...(partial
           ? {
               message: 'Some memory details could not be loaded. Try refreshing again.',
@@ -63,13 +75,24 @@ export function createMemoryService(
   };
 }
 
-function offlineResult(): MemoryRefreshResult {
+function offlineResult(ingestion?: MemoryIngestionSummary): MemoryRefreshResult {
   return {
     status: 'offline',
     profile: emptyProfile(),
     memories: [],
+    ...(ingestion ? { ingestion } : {}),
     message: 'Supermemory Local is unavailable. Your journal remains saved locally.',
   };
+}
+
+async function readIngestionStatus(
+  ingestion: IngestionStatusProvider | undefined,
+): Promise<MemoryIngestionSummary | undefined> {
+  if (!ingestion?.getStatus) {
+    return undefined;
+  }
+
+  return ingestion.getStatus().catch(() => undefined);
 }
 
 async function listAllMemories(client: SupermemoryClient): Promise<unknown[]> {
@@ -149,7 +172,36 @@ function normalizeMemory(value: unknown): MemoryItem | null {
     id: typeof record.id === 'string' ? record.id : text,
     text: text.trim(),
     ...(typeof sourceDate === 'string' ? { sourceDate } : {}),
+    ...sourceIds(record),
   };
+}
+
+function sourceIds(record: Record<string, unknown>): {
+  sourceDocumentIds?: string[];
+  sourceEntryIds?: string[];
+} {
+  const documents = Array.isArray(record.documents) ? record.documents : [];
+  const sourceDocumentIds = documents
+    .map((document) => asRecord(document)?.id)
+    .filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+  const sourceEntryIds = documents.flatMap((document) => {
+    const documentRecord = asRecord(document);
+    const metadata = asRecord(documentRecord?.metadata);
+    return [documentRecord?.customId, metadata?.entryId, metadata?.customId].filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    );
+  });
+
+  return {
+    ...(sourceDocumentIds.length > 0
+      ? { sourceDocumentIds: unique(sourceDocumentIds) }
+      : {}),
+    ...(sourceEntryIds.length > 0 ? { sourceEntryIds: unique(sourceEntryIds) } : {}),
+  };
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
 }
 
 function normalizeMemories(values: unknown[]): MemoryItem[] {

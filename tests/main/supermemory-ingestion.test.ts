@@ -4,7 +4,10 @@ import type { JournalEntry } from '../../src/shared/journal-entry';
 import type { PreferencesStorage } from '../../src/main/preferences-storage';
 import type { SupermemoryClient } from '../../src/main/supermemory-client';
 import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
-import { createJournalMemoryIngestor } from '../../src/main/supermemory-ingestion';
+import {
+  createJournalMemoryIngestor,
+  formatEntryForMemory,
+} from '../../src/main/supermemory-ingestion';
 
 const entry: JournalEntry = {
   id: 'f408164b-4355-4da3-9c64-944d8f7129fb',
@@ -31,8 +34,7 @@ describe('Supermemory journal ingestion', () => {
     ).ingestEntry(entry);
 
     expect(add).toHaveBeenCalledWith({
-      content:
-        'Completed reflection — 2026-07-11\nApp-generated opening prompt: What stayed with you?\n\nUser-authored initial reflection:\nA quiet moment.',
+      content: 'Journal reflection — 2026-07-11\n\nA quiet moment.',
       containerTag: JOURNAL_MEMORY_CONTAINER,
       customId: entry.id,
       metadata: {
@@ -102,17 +104,17 @@ describe('Supermemory journal ingestion', () => {
       metadata: Record<string, string>;
     };
     expect(request.content).toContain(
-      'User-authored deeper reflection:\nUncertainty makes small interruptions feel easier to choose.',
+      'Follow-up reflection:\nUncertainty makes small interruptions feel easier to choose.',
     );
     expect(request.metadata.themes).toBe('attention, uncertainty');
-    expect(request.content).toContain(
+    expect(request.content).not.toContain(
       'What are you learning about protecting your attention?',
     );
     expect(request.content).not.toContain('memory-one');
     expect(request.content).not.toContain('connect-behavior-and-effect');
   });
 
-  it('marks an unanswered deeper prompt as app-generated rather than user-authored', async () => {
+  it('does not turn an unanswered generated prompt into a memory', async () => {
     const add = vi.fn().mockResolvedValue({ id: 'document-id' });
 
     await createJournalMemoryIngestor(
@@ -126,9 +128,22 @@ describe('Supermemory journal ingestion', () => {
     });
 
     const { content } = add.mock.calls[0]![0] as { content: string };
-    expect(content).toContain(
-      'App-generated deeper prompt (unanswered):\nWhat might finishing this decision make real?',
-    );
-    expect(content).not.toContain('User-authored deeper reflection:');
+    expect(content).toBe(formatEntryForMemory(entry));
+    expect(content).not.toContain('What might finishing this decision make real?');
+  });
+
+  it('waits for a queued document to finish processing', async () => {
+    const add = vi.fn().mockResolvedValue({ id: 'document-id', status: 'queued' });
+    const get = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 'document-id', status: 'indexing' })
+      .mockResolvedValueOnce({ id: 'document-id', status: 'done' });
+
+    await createJournalMemoryIngestor(
+      Promise.resolve({ documents: { add, get } } as unknown as SupermemoryClient),
+      preferencesStub(),
+    ).ingestEntry(entry);
+
+    expect(get).toHaveBeenCalledTimes(2);
   });
 });

@@ -27,6 +27,20 @@ export interface SupermemorySearchResponse {
   results: SupermemorySearchResult[];
 }
 
+export interface SupermemoryDocumentResult {
+  id: string;
+  status: string;
+  customId?: string | null;
+  metadata?: unknown;
+  updatedAt?: string;
+}
+
+export interface SupermemoryDocumentListResponse {
+  memories?: SupermemoryDocumentResult[];
+  documents?: SupermemoryDocumentResult[];
+  results?: SupermemoryDocumentResult[];
+}
+
 export interface SupermemoryClient {
   documents: {
     add: (input: {
@@ -36,6 +50,22 @@ export interface SupermemoryClient {
       metadata: Record<string, string>;
       entityContext?: string;
     }) => Promise<unknown>;
+    get?: (id: string) => Promise<SupermemoryDocumentResult>;
+    update?: (
+      id: string,
+      input: {
+        content: string;
+        containerTag: string;
+        customId: string;
+        metadata: Record<string, string>;
+        entityContext?: string;
+      },
+    ) => Promise<unknown>;
+    list?: (input: {
+      containerTags: string[];
+      limit: number;
+      page: number;
+    }) => Promise<SupermemoryDocumentListResponse>;
   };
   profile: (input: { containerTag: string }) => Promise<unknown>;
   search: {

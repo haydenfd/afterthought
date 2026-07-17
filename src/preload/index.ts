@@ -29,6 +29,8 @@ const afterthoughtApi = {
   },
   memory: {
     refresh: (): Promise<MemoryRefreshResult> => ipcRenderer.invoke('memory:refresh'),
+    retryIngestion: (): Promise<MemoryRefreshResult['ingestion']> =>
+      ipcRenderer.invoke('memory:retry-ingestion'),
   },
   preferences: {
     get: (): Promise<Preferences> => ipcRenderer.invoke('preferences:get'),

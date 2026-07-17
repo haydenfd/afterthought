@@ -13,6 +13,7 @@ import { createEntryStorage } from './entry-storage';
 import { createJournalService } from './journal-service';
 import { loadEnvFile } from './load-env';
 import { createMemoryService } from './memory-service';
+import { createMemoryIngestionStorage } from './memory-ingestion-storage';
 import { generateOpeningQuestions } from './opening-questions';
 import { createOpeningQuestionsStorage } from './opening-questions-storage';
 import { createPreferencesStorage } from './preferences-storage';
@@ -153,11 +154,19 @@ void app.whenReady().then(async () => {
       console.error('[supermemory] local server did not start', error);
     },
   );
-  const memory = createMemoryService(supermemoryClient);
-  const journal = createJournalService(
-    entryStorage,
-    createJournalMemoryIngestor(supermemoryClient, preferencesStorage),
+  const memoryIngestion = createJournalMemoryIngestor(
+    supermemoryClient,
+    preferencesStorage,
+    {
+      entryStorage,
+      stateStorage: createMemoryIngestionStorage(
+        join(app.getPath('userData'), 'memory-ingestion.json'),
+      ),
+    },
   );
+  const memory = createMemoryService(supermemoryClient, memoryIngestion);
+  const journal = createJournalService(entryStorage, memoryIngestion);
+  void memoryIngestion.start?.();
 
   ipcMain.handle('supermemory:check-connection', (_event, url: unknown) =>
     checkSupermemoryConnection(url),
@@ -202,6 +211,7 @@ void app.whenReady().then(async () => {
   );
   ipcMain.handle('entries:list', () => entryStorage.listEntries());
   ipcMain.handle('memory:refresh', () => memory.refresh());
+  ipcMain.handle('memory:retry-ingestion', () => memoryIngestion.retryFailed?.());
   ipcMain.handle('preferences:get', () => preferencesStorage.getPreferences());
   ipcMain.handle('preferences:set', (_event, update: unknown) => {
     if (!update || typeof update !== 'object') {
