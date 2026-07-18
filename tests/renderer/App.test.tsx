@@ -26,7 +26,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Welcome to Afterthought' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('1 of 5')).toBeInTheDocument();
+    expect(screen.getByText('1 of 4')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Skip onboarding' }),
     ).not.toBeInTheDocument();

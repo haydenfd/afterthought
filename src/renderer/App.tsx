@@ -7,7 +7,6 @@ import { CalendarPage } from '@/routes/calendar-page';
 import { EntryDetailPage } from '@/routes/entry-detail-page';
 import { NewEntryPage } from '@/routes/new-entry-page';
 import { OnboardingPage } from '@/routes/onboarding-page';
-import { ProfilePage } from '@/routes/profile-page';
 import { ReflectionsPage } from '@/routes/reflections-page';
 import { SettingsPage } from '@/routes/settings-page';
 import { DraftProvider } from '@/state/draft-context';
@@ -20,7 +19,6 @@ export function AppRoutes() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/calendar/:date" element={<EntryDetailPage />} />
         <Route path="/reflections" element={<ReflectionsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route

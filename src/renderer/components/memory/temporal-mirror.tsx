@@ -205,7 +205,6 @@ function SourceList({
     <ul className="mt-4 space-y-3 border-t border-border/75 pt-3">
       {sources.map((memory) => (
         <li key={memory.id} className="text-xs leading-5 text-muted-foreground">
-          <p>{previewMemory(memory.text)}</p>
           <SourceReference memory={memory} entriesById={entriesById} />
         </li>
       ))}
@@ -241,13 +240,6 @@ function SourceReference({
       ) : null}
     </div>
   ) : null;
-}
-
-function previewMemory(text: string): string {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-  return normalized.length <= 180
-    ? normalized
-    : `${normalized.slice(0, 177).trimEnd()}...`;
 }
 
 function formatMemoryDate(value: string): string {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { ReflectionsPage } from '@/routes/reflections-page';
@@ -6,7 +6,7 @@ import type { MemoryRefreshResult } from '../../../src/shared/memory';
 import type { TemporalMirrorResult } from '../../../src/shared/reflection';
 
 describe('ReflectionsPage', () => {
-  it('shows loading and then the remembered moments', async () => {
+  it('shows loading and then the distilled empty state', async () => {
     const result: MemoryRefreshResult = {
       status: 'online',
       profile: {
@@ -31,8 +31,17 @@ describe('ReflectionsPage', () => {
 
     expect(screen.getByText('Gathering remembered moments…')).toBeInTheDocument();
     expect(
-      await screen.findByText('A named worry became more manageable.'),
+      await screen.findByText(
+        'Nothing has been distilled yet. Finish an entry and it will surface here.',
+      ),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('A named worry became more manageable.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Supermemory keeps the source moments/),
+    ).not.toBeInTheDocument();
   });
 
   it('shows an empty online state without treating it as an error', async () => {
@@ -52,7 +61,7 @@ describe('ReflectionsPage', () => {
 
     expect(
       await screen.findByText(
-        'Nothing has been remembered yet. Finish an entry and it will surface here.',
+        'Nothing has been distilled yet. Finish an entry and it will surface here.',
       ),
     ).toBeInTheDocument();
   });
@@ -109,10 +118,13 @@ describe('ReflectionsPage', () => {
         .every((link) => link.getAttribute('href') === '/calendar/2026-07-10'),
     ).toBe(true);
     expect(screen.getAllByText('July 10, 2026')).not.toHaveLength(0);
-    expect(screen.getByText('The reflection loop')).toBeInTheDocument();
+    expect(screen.queryByText('The reflection loop')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The phone cutoff made mornings feel less rushed.'),
+    ).not.toBeInTheDocument();
   });
 
-  it('explains when Groq cannot synthesize threads without hiding source memories', async () => {
+  it('explains when Groq cannot synthesize threads without showing source excerpts', async () => {
     setMemoryRefresh(
       vi.fn().mockResolvedValue({
         status: 'online',
@@ -138,54 +150,9 @@ describe('ReflectionsPage', () => {
         'Groq synthesis is unavailable right now. Source memories are still available below.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('A source moment remains available.')).toBeInTheDocument();
-  });
-
-  it('offers a retry when an entry still needs indexing', async () => {
-    const retryIngestion = vi.fn().mockResolvedValue({
-      status: 'ready',
-      pending: 0,
-      processing: 0,
-      failed: 0,
-      complete: 1,
-    });
-    const refresh = vi
-      .fn()
-      .mockResolvedValueOnce({
-        status: 'online',
-        profile: { dynamic: [], static: [] },
-        memories: [],
-        ingestion: {
-          status: 'attention',
-          pending: 0,
-          processing: 0,
-          failed: 1,
-          complete: 0,
-          message: '1 reflection needs memory indexing attention.',
-        },
-      } satisfies MemoryRefreshResult)
-      .mockResolvedValueOnce({
-        status: 'online',
-        profile: { dynamic: [], static: [] },
-        memories: [],
-        ingestion: {
-          status: 'ready',
-          pending: 0,
-          processing: 0,
-          failed: 0,
-          complete: 1,
-        },
-      } satisfies MemoryRefreshResult);
-    setMemoryRefresh(refresh, [], retryIngestion);
-
-    render(<ReflectionsPage />);
-
-    const retryButton = await screen.findByRole('button', { name: 'Retry indexing' });
-    fireEvent.click(retryButton);
-
-    await waitFor(() => expect(retryIngestion).toHaveBeenCalledOnce());
-    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText('Memory index is ready')).toBeInTheDocument();
+    expect(
+      screen.queryByText('A source moment remains available.'),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps a calm local-first view when Supermemory is offline', async () => {
@@ -258,7 +225,6 @@ describe('ReflectionsPage', () => {
           content: 'I can see what I value now.',
         },
       ],
-      vi.fn().mockResolvedValue(undefined),
       temporalMirror,
     );
 
@@ -288,7 +254,6 @@ describe('ReflectionsPage', () => {
 function setMemoryRefresh(
   refresh: () => Promise<MemoryRefreshResult>,
   entries: unknown[] = [],
-  retryIngestion: () => Promise<unknown> = vi.fn().mockResolvedValue(undefined),
   temporalMirror: (query: string) => Promise<TemporalMirrorResult> = vi
     .fn()
     .mockResolvedValue({
@@ -300,7 +265,7 @@ function setMemoryRefresh(
   Object.defineProperty(window, 'afterthought', {
     configurable: true,
     value: {
-      memory: { refresh, retryIngestion },
+      memory: { refresh },
       entries: { list: vi.fn().mockResolvedValue(entries) },
       reflection: { temporalMirror },
     },

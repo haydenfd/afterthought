@@ -1,11 +1,4 @@
-import {
-  CalendarDays,
-  Feather,
-  PanelLeft,
-  Plus,
-  Settings,
-  UserRound,
-} from 'lucide-react';
+import { CalendarDays, Feather, PanelLeft, Plus, Settings } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -14,7 +7,6 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { label: 'Calendar', to: '/calendar', icon: CalendarDays },
   { label: 'Reflections', to: '/reflections', icon: Feather },
-  { label: 'You', to: '/profile', icon: UserRound },
   { label: 'Settings', to: '/settings', icon: Settings },
 ] as const;
 

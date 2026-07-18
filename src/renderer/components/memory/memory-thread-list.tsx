@@ -51,72 +51,81 @@ export function MemoryThreadList({
               {thread.nextQuestion}
             </p>
           ) : null}
-          <div className="mt-5 border-t border-border/75 pt-4">
-            <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/75">
-              Grounded in
-            </p>
-            <ul className="mt-3 space-y-3">
-              {thread.sourceMemoryIds.map((memoryId) => {
-                const memory = memoriesById.get(memoryId);
-                return memory ? (
-                  <li
-                    key={memory.id}
-                    className="text-sm leading-6 text-muted-foreground"
-                  >
-                    <p>{previewMemory(memory.text)}</p>
-                    <SourceReference memory={memory} entriesById={entriesById} />
-                  </li>
-                ) : null;
-              })}
-            </ul>
-          </div>
+          <SourceReferences
+            memoryIds={thread.sourceMemoryIds}
+            memoriesById={memoriesById}
+            entriesById={entriesById}
+          />
         </article>
       ))}
     </div>
   );
 }
 
-function SourceReference({
-  memory,
+function SourceReferences({
+  memoryIds,
+  memoriesById,
   entriesById,
 }: {
-  memory: MemoryItem;
+  memoryIds: string[];
+  memoriesById: Map<string, MemoryItem>;
   entriesById: Map<string, JournalEntry>;
 }) {
-  const sourceEntry = (memory.sourceEntryIds ?? [])
-    .map((entryId) => entriesById.get(entryId))
-    .find((entry): entry is JournalEntry => Boolean(entry));
+  const references: Array<{ date: string; href?: string }> = memoryIds.flatMap(
+    (memoryId) => {
+      const memory = memoriesById.get(memoryId);
+      if (!memory) {
+        return [];
+      }
 
-  if (sourceEntry) {
-    return (
-      <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground/75">
-        <span>{formatMemoryDate(sourceEntry.createdAt)}</span>
-        <span aria-hidden="true">·</span>
-        <Link
-          to={`/calendar/${formatRouteDate(new Date(sourceEntry.createdAt))}`}
-          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        >
-          View source entry
-        </Link>
-      </div>
-    );
+      const sourceEntries = (memory.sourceEntryIds ?? [])
+        .map((entryId) => entriesById.get(entryId))
+        .filter((entry): entry is JournalEntry => Boolean(entry));
+
+      if (sourceEntries.length > 0) {
+        return sourceEntries.map((entry) => ({
+          date: entry.createdAt,
+          href: `/calendar/${formatRouteDate(new Date(entry.createdAt))}`,
+        }));
+      }
+
+      return memory.sourceDate ? [{ date: memory.sourceDate }] : [];
+    },
+  );
+
+  const uniqueReferences = references.filter(
+    (reference, index) =>
+      references.findIndex(
+        (candidate) =>
+          candidate.date === reference.date && candidate.href === reference.href,
+      ) === index,
+  );
+
+  if (uniqueReferences.length === 0) {
+    return null;
   }
 
-  return memory.sourceDate ? (
-    <span className="mt-1 block text-xs text-muted-foreground/75">
-      {formatMemoryDate(memory.sourceDate)}
-    </span>
-  ) : null;
-}
-
-function previewMemory(text: string): string {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-
-  if (normalized.length <= 240) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, 237).trimEnd()}...`;
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/75 pt-3 text-xs text-muted-foreground/75">
+      {uniqueReferences.map((reference, index) => (
+        <span key={`${reference.date}-${reference.href ?? 'date'}-${index}`}>
+          {index > 0 ? <span aria-hidden="true"> · </span> : null}
+          <span>{formatMemoryDate(reference.date)}</span>
+          {reference.href ? (
+            <>
+              <span aria-hidden="true"> · </span>
+              <Link
+                to={reference.href}
+                className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
+                View source entry
+              </Link>
+            </>
+          ) : null}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function formatMemoryDate(value: string): string {

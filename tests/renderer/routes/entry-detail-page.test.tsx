@@ -115,6 +115,6 @@ describe('EntryDetailPage', () => {
       screen.getAllByText('Earlier, unfinished work made a larger choice feel real.'),
     ).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'View source entry' })).toHaveLength(2);
-    expect(screen.getByText('Touched on: Attention · Uncertainty')).toBeInTheDocument();
+    expect(screen.getByText('Touched on: Attention | Uncertainty')).toBeInTheDocument();
   });
 });

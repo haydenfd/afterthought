@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { formatFullDate, formatRouteDate, parseRouteDate } from '@/lib/dates';
 import { groupEntriesByLocalDate } from '@/lib/calendar';
 import { cn } from '@/lib/utils';
+import { formatTheme } from '../../shared/format-theme';
 import type { JournalEntry } from '../../shared/journal-entry';
 import type { MemoryEvidenceItem } from '../../shared/reflection';
 
@@ -129,8 +130,8 @@ export function EntryDetailPage() {
               </section>
             ) : null}
             {entry.themes?.length ? (
-              <p className="mt-8 text-xs text-muted-foreground">
-                Touched on: {entry.themes.map(formatTheme).join(' · ')}
+              <p className="mt-8 text-sm text-muted-foreground">
+                Touched on: {entry.themes.map(formatTheme).join(' | ')}
               </p>
             ) : null}
           </article>
@@ -161,10 +162,6 @@ export function EntryDetailPage() {
       </div>
     </section>
   );
-}
-
-function formatTheme(theme: string): string {
-  return theme.charAt(0).toLocaleUpperCase() + theme.slice(1);
 }
 
 function MemoryEvidenceContext({
