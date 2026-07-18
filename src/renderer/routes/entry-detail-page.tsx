@@ -64,7 +64,7 @@ export function EntryDetailPage() {
             className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:w-4 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
             aria-hidden="true"
           />
-          Calendar
+          Back
         </Link>
       </Button>
 
