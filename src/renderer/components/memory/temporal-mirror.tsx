@@ -59,10 +59,9 @@ export function TemporalMirror({
             <Clock3 className="h-4 w-4" aria-hidden="true" />
           </div>
           <div className="space-y-1">
-            <CardTitle>Look across time</CardTitle>
+            <CardTitle>Temporal Mirror</CardTitle>
             <CardDescription>
-              Ask how something has changed. The mirror compares earlier and later
-              source moments instead of giving a generic journal summary.
+              Ask about something to see how it progresses over time.
             </CardDescription>
           </div>
         </div>
@@ -121,7 +120,7 @@ function TemporalMirrorResultView({
     <div className="space-y-5" aria-live="polite">
       <div className="border-b border-border/75 pb-4">
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          Temporal mirror
+          Temporal Mirror
         </p>
         <p className="mt-2 writing-text text-lg leading-8">“{result.query}”</p>
       </div>

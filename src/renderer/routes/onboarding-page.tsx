@@ -434,10 +434,9 @@ function ReflectPreview() {
             <Feather className="h-4 w-4" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-sm font-medium">Look across time</p>
+            <p className="text-sm font-medium">Temporal Mirror</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Ask how something has changed, using earlier and later moments from your
-              journal.
+              Ask about something to see how it progresses over time.
             </p>
           </div>
         </div>

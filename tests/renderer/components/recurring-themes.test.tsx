@@ -62,10 +62,13 @@ describe('recurring themes', () => {
       screen.getByRole('heading', { name: 'Recurring themes' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Friendship')).toBeInTheDocument();
-    expect(screen.getByText(/July 16, 2026/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Themes returning in your writing lately.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Friendship, back again/ }),
     ).toHaveAttribute('href', '/calendar/2026-07-16');
+    expect(screen.queryByText(/July 16, 2026/)).not.toBeInTheDocument();
     expect(screen.queryByText(/source|times|%/i)).not.toBeInTheDocument();
   });
 

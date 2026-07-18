@@ -1,8 +1,4 @@
-import { Link } from 'react-router-dom';
-
-import { formatFullDate, formatRouteDate } from '@/lib/dates';
-import type { JournalEntry } from '../../../shared/journal-entry';
-import type { MemoryItem, MemoryThread } from '../../../shared/memory';
+import type { MemoryThread } from '../../../shared/memory';
 
 const kindLabels: Record<MemoryThread['kind'], string> = {
   present: 'Present now',
@@ -12,17 +8,7 @@ const kindLabels: Record<MemoryThread['kind'], string> = {
   progress: 'A small change',
 };
 
-export function MemoryThreadList({
-  threads,
-  memories,
-  entriesById,
-}: {
-  threads: MemoryThread[];
-  memories: MemoryItem[];
-  entriesById: Map<string, JournalEntry>;
-}) {
-  const memoriesById = new Map(memories.map((memory) => [memory.id, memory]));
-
+export function MemoryThreadList({ threads }: { threads: MemoryThread[] }) {
   return (
     <div className="space-y-5">
       {threads.map((thread) => (
@@ -51,84 +37,8 @@ export function MemoryThreadList({
               {thread.nextQuestion}
             </p>
           ) : null}
-          <SourceReferences
-            memoryIds={thread.sourceMemoryIds}
-            memoriesById={memoriesById}
-            entriesById={entriesById}
-          />
         </article>
       ))}
     </div>
   );
-}
-
-function SourceReferences({
-  memoryIds,
-  memoriesById,
-  entriesById,
-}: {
-  memoryIds: string[];
-  memoriesById: Map<string, MemoryItem>;
-  entriesById: Map<string, JournalEntry>;
-}) {
-  const references: Array<{ date: string; href?: string }> = memoryIds.flatMap(
-    (memoryId) => {
-      const memory = memoriesById.get(memoryId);
-      if (!memory) {
-        return [];
-      }
-
-      const sourceEntries = (memory.sourceEntryIds ?? [])
-        .map((entryId) => entriesById.get(entryId))
-        .filter((entry): entry is JournalEntry => Boolean(entry));
-
-      if (sourceEntries.length > 0) {
-        return sourceEntries.map((entry) => ({
-          date: entry.createdAt,
-          href: `/calendar/${formatRouteDate(new Date(entry.createdAt))}`,
-        }));
-      }
-
-      return memory.sourceDate ? [{ date: memory.sourceDate }] : [];
-    },
-  );
-
-  const uniqueReferences = references.filter(
-    (reference, index) =>
-      references.findIndex(
-        (candidate) =>
-          candidate.date === reference.date && candidate.href === reference.href,
-      ) === index,
-  );
-
-  if (uniqueReferences.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/75 pt-3 text-xs text-muted-foreground/75">
-      {uniqueReferences.map((reference, index) => (
-        <span key={`${reference.date}-${reference.href ?? 'date'}-${index}`}>
-          {index > 0 ? <span aria-hidden="true"> · </span> : null}
-          <span>{formatMemoryDate(reference.date)}</span>
-          {reference.href ? (
-            <>
-              <span aria-hidden="true"> · </span>
-              <Link
-                to={reference.href}
-                className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
-              >
-                View source entry
-              </Link>
-            </>
-          ) : null}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function formatMemoryDate(value: string): string {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : formatFullDate(parsed);
 }

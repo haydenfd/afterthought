@@ -35,6 +35,42 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows onboarding for returning users during the demo', async () => {
+    const currentApi = window.afterthought;
+    Object.defineProperty(window, 'afterthought', {
+      configurable: true,
+      value: {
+        ...currentApi,
+        preferences: {
+          ...currentApi.preferences,
+          get: vi.fn().mockResolvedValue({
+            onboardingCompletedAt: '2026-07-16T12:00:00.000Z',
+          }),
+        },
+        groq: {
+          ...currentApi.groq,
+          validateApiKey: vi.fn().mockResolvedValue({
+            configured: true,
+            valid: true,
+            secureStorageAvailable: true,
+          }),
+        },
+      },
+    });
+
+    render(
+      <AppProviders>
+        <MemoryRouter initialEntries={['/']}>
+          <AppRoutes />
+        </MemoryRouter>
+      </AppProviders>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome to Afterthought' }),
+    ).toBeInTheDocument();
+  });
+
   it('opens Calendar without generating an opening question', async () => {
     const openingQuestions = vi.fn();
     const currentApi = window.afterthought;

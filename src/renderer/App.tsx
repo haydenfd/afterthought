@@ -11,6 +11,9 @@ import { ReflectionsPage } from '@/routes/reflections-page';
 import { SettingsPage } from '@/routes/settings-page';
 import { DraftProvider } from '@/state/draft-context';
 
+// Temporary demo behavior: show onboarding from the root route for returning users too.
+const showOnboardingForDemo = true;
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -52,9 +55,10 @@ function RootRedirect() {
       }
 
       setDestination(
-        preferences.onboardingCompletedAt && groqStatus.valid === true
-          ? '/calendar'
-          : '/onboarding',
+        showOnboardingForDemo ||
+          !(preferences.onboardingCompletedAt && groqStatus.valid === true)
+          ? '/onboarding'
+          : '/calendar',
       );
     });
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
-import { formatFullDate, formatRouteDate } from '@/lib/dates';
+import { formatRouteDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { formatTheme } from '../../../shared/format-theme';
 import type { JournalEntry } from '../../../shared/journal-entry';
@@ -61,7 +61,7 @@ export function RecurringThemes({
           Recurring themes
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          The themes you keep returning to, and how present they feel lately.
+          Themes returning in your writing lately.
         </p>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-4">
@@ -99,7 +99,7 @@ function ThemeLink({ theme }: { theme: RecurringTheme }) {
         {theme.label}
       </span>
       <span className="text-xs text-muted-foreground/75">
-        {presenceLabels[theme.presence]} · {formatFullDate(mostRecentDate)}
+        {presenceLabels[theme.presence]}
       </span>
     </Link>
   );

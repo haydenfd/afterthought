@@ -98,6 +98,7 @@ describe('ReflectionsPage', () => {
           updatedAt: '2026-07-10T15:30:00-07:00',
           prompt: '',
           content: 'I wrote about a new boundary.',
+          themes: ['attention'],
         },
       ],
     );
@@ -112,12 +113,36 @@ describe('ReflectionsPage', () => {
     expect(
       screen.getByText('What helps this boundary feel chosen?'),
     ).toBeInTheDocument();
+    expect(screen.queryByText('July 10, 2026')).not.toBeInTheDocument();
+    expect(screen.queryByText('View source entry')).not.toBeInTheDocument();
     expect(
-      screen
-        .getAllByRole('link', { name: 'View source entry' })
-        .every((link) => link.getAttribute('href') === '/calendar/2026-07-10'),
-    ).toBe(true);
-    expect(screen.getAllByText('July 10, 2026')).not.toHaveLength(0);
+      screen.getByRole('heading', { name: 'Recurring themes' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Themes returning in your writing lately.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Attention, just came up/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Threads to revisit' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('A few patterns from your recent entries, worth a second look.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Temporal Mirror' }),
+    ).toBeInTheDocument();
+    const headingTexts = screen
+      .getAllByRole('heading')
+      .map((heading) => heading.textContent);
+    expect(headingTexts.indexOf('Recurring themes')).toBeLessThan(
+      headingTexts.indexOf('Threads to revisit'),
+    );
+    expect(headingTexts.indexOf('Threads to revisit')).toBeLessThan(
+      headingTexts.indexOf('Temporal Mirror'),
+    );
+    expect(screen.queryByText('A little perspective')).not.toBeInTheDocument();
     expect(screen.queryByText('The reflection loop')).not.toBeInTheDocument();
     expect(
       screen.queryByText('The phone cutoff made mornings feel less rushed.'),
@@ -240,7 +265,7 @@ describe('ReflectionsPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Compare moments' }));
 
-    expect(await screen.findByText('Temporal mirror')).toBeInTheDocument();
+    expect(await screen.findByText('Temporal Mirror')).toBeInTheDocument();
     expect(screen.getByText('Then')).toBeInTheDocument();
     expect(screen.getByText('Now')).toBeInTheDocument();
     expect(screen.getByText('What shifted')).toBeInTheDocument();

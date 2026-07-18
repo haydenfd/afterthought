@@ -84,39 +84,38 @@ export function ReflectionsPage() {
         <div className="route-content-enter space-y-8">
           <MemoryInsightStatus insights={memory.insights} />
 
-          <TemporalMirror entriesById={entriesById} />
-
           {memory.message ? (
             <p className="text-sm text-muted-foreground" role="status">
               {memory.message}
             </p>
           ) : null}
 
-          {threads.length > 0 ? (
-            <section aria-labelledby="threads-heading">
-              <div className="mb-4">
-                <h2 id="threads-heading" className="text-xl font-medium">
-                  A little perspective
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  These are invitations to look again, not conclusions about you.
-                </p>
-              </div>
-              <MemoryThreadList
-                threads={threads}
-                memories={memory.memories}
-                entriesById={entriesById}
-              />
-            </section>
-          ) : null}
-
-          {threads.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nothing has been distilled yet. Finish an entry and it will surface here.
-            </p>
-          ) : null}
-
           <RecurringThemes entries={entries} />
+
+          <div className="border-t border-border/70 pt-8">
+            {threads.length > 0 ? (
+              <section aria-labelledby="threads-heading">
+                <div className="mb-4">
+                  <h2 id="threads-heading" className="text-xl font-medium">
+                    Threads to revisit
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    A few patterns from your recent entries, worth a second look.
+                  </p>
+                </div>
+                <MemoryThreadList threads={threads} />
+              </section>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Nothing has been distilled yet. Finish an entry and it will surface
+                here.
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-border/70 pt-8">
+            <TemporalMirror entriesById={entriesById} />
+          </div>
         </div>
       )}
     </section>
