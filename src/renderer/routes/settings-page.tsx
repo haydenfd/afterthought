@@ -113,7 +113,7 @@ export function SettingsPage() {
               <div className="relative">
                 <Input
                   id="groq-api-key"
-                  type="text"
+                  type="password"
                   autoComplete="off"
                   value={groqApiKey}
                   readOnly={!isGroqKeyEditing}
