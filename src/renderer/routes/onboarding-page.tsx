@@ -2,11 +2,11 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
-  Check,
   Feather,
   KeyRound,
-  PanelLeft,
-  Sparkles,
+  Plus,
+  RefreshCw,
+  Settings,
   UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -145,11 +145,13 @@ export function OnboardingPage() {
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
         <header className="flex items-center gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-primary">
-              <Feather className="h-4 w-4" aria-hidden="true" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-primary">
+              <Feather className="h-6 w-6" aria-hidden="true" />
             </div>
-            <span className="font-sans text-base font-semibold">Afterthought</span>
+            <span className="font-sans text-2xl font-semibold tracking-tight">
+              Afterthought
+            </span>
           </div>
         </header>
 
@@ -275,11 +277,7 @@ export function OnboardingPage() {
                       (groqStatus?.valid !== true && !groqApiKey.trim()))
                   }
                 >
-                  {isLast
-                    ? groqAction === 'saving'
-                      ? 'Verifying…'
-                      : 'Verify key and open Calendar'
-                    : 'Continue'}
+                  {isLast ? 'Open Calendar' : 'Continue'}
                   {isLast ? (
                     <CalendarDays
                       className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100"
@@ -304,69 +302,104 @@ export function OnboardingPage() {
 }
 
 function FeaturePreview({ kind }: { kind: PreviewKind }) {
+  const active =
+    kind === 'write'
+      ? 'New Entry'
+      : kind === 'reflect'
+        ? 'Reflections'
+        : kind === 'profile'
+          ? 'You'
+          : 'Calendar';
+
   return (
     <div
       className="relative min-h-[22rem] overflow-hidden rounded-2xl border border-border/80 bg-card/70 p-3 shadow-[0_20px_64px_hsl(var(--primary)/0.045)] sm:min-h-[30rem] sm:p-5"
       aria-label="Afterthought app preview"
     >
-      <div className="flex h-full min-h-[20rem] flex-col overflow-hidden rounded-xl border border-border/80 bg-background shadow-[0_10px_32px_hsl(var(--primary)/0.035)] sm:min-h-[27rem]">
-        <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/70 px-4">
-          <span className="h-2 w-2 rounded-full bg-primary/30" />
-          <span className="h-2 w-2 rounded-full bg-primary/20" />
-          <span className="h-2 w-2 rounded-full bg-primary/10" />
-          <span className="ml-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Afterthought
-          </span>
-        </div>
-        <div className="flex min-h-0 flex-1">
-          <div className="hidden w-36 shrink-0 border-r border-border/70 bg-card/45 p-3 sm:block">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <Feather className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-              Afterthought
-            </div>
-            <div className="mt-8 space-y-2 text-[0.65rem] text-muted-foreground">
-              <div className="flex items-center gap-2 rounded-md bg-secondary px-2 py-1.5 text-foreground">
-                <CalendarDays className="h-3 w-3" aria-hidden="true" />
-                Calendar
-              </div>
-              <div className="flex items-center gap-2 px-2 py-1.5">
-                <Feather className="h-3 w-3" aria-hidden="true" />
-                Reflections
-              </div>
-              <div className="flex items-center gap-2 px-2 py-1.5">
-                <UserRound className="h-3 w-3" aria-hidden="true" />
-                You
-              </div>
-            </div>
-          </div>
-          <div className="min-w-0 flex-1 p-5 sm:p-8">
-            {kind === 'welcome' ? <WelcomePreview /> : null}
-            {kind === 'write' ? <WritePreview /> : null}
-            {kind === 'reflect' ? <ReflectPreview /> : null}
-            {kind === 'profile' ? <ProfilePreview /> : null}
-            {kind === 'calendar' ? <CalendarPreview /> : null}
-          </div>
+      <div className="flex min-h-[20rem] overflow-hidden rounded-xl border border-border/80 bg-background shadow-[0_10px_32px_hsl(var(--primary)/0.035)] sm:min-h-[27rem]">
+        <PreviewSidebar active={active} />
+        <div className="min-w-0 flex-1 p-5 sm:p-8">
+          {kind === 'welcome' ? <WelcomePreview /> : null}
+          {kind === 'write' ? <WritePreview /> : null}
+          {kind === 'reflect' ? <ReflectPreview /> : null}
+          {kind === 'profile' ? <ProfilePreview /> : null}
+          {kind === 'calendar' ? <CalendarPreview /> : null}
         </div>
       </div>
     </div>
   );
 }
 
+function PreviewSidebar({ active }: { active: string }) {
+  const items = [
+    ['Calendar', CalendarDays],
+    ['Reflections', Feather],
+    ['You', UserRound],
+    ['Settings', Settings],
+  ] as const;
+
+  return (
+    <aside className="hidden w-40 shrink-0 border-r border-border/70 bg-card/55 p-3 sm:block">
+      <div className="flex items-center gap-2 px-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-primary">
+          <Feather className="h-4 w-4" aria-hidden="true" />
+        </div>
+        <span className="truncate font-sans text-sm font-semibold">Afterthought</span>
+      </div>
+      <div className="mt-6 rounded-md bg-primary px-2.5 py-2 text-[0.68rem] font-medium text-primary-foreground">
+        <Plus className="mr-1.5 inline h-3 w-3" aria-hidden="true" />
+        New Entry
+      </div>
+      <nav className="mt-4 space-y-1" aria-label="Preview navigation">
+        {items.map(([label, Icon]) => (
+          <div
+            key={label}
+            className={cn(
+              'flex items-center gap-2 rounded-md px-2.5 py-2 text-[0.68rem] text-muted-foreground',
+              label === active && 'bg-secondary text-foreground',
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+            {label}
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
+}
+
 function WelcomePreview() {
   return (
-    <div className="flex h-full flex-col justify-between gap-8">
-      <div>
-        <div className="flex items-center gap-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          <PanelLeft className="h-3.5 w-3.5" aria-hidden="true" />A private place to
-          write
+    <div className="flex h-full min-h-[19rem] flex-col">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-medium sm:text-3xl">July 2026</h2>
+          <p className="mt-2 text-xs text-muted-foreground">0 entries this month</p>
         </div>
-        <h2 className="mt-6 max-w-sm text-3xl font-medium leading-tight sm:text-4xl">
-          What has been taking up more space in your mind than you expected?
-        </h2>
+        <div className="flex gap-1">
+          <PreviewIconButton label="Previous month" />
+          <PreviewIconButton label="Next month" />
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <PreviewCard label="Write" icon={<Feather className="h-4 w-4" />} />
-        <PreviewCard label="Reflect" icon={<Sparkles className="h-4 w-4" />} />
+      <EmptyCalendarGrid />
+      <div className="mt-5 border-t border-border/70 pt-5">
+        <div className="flex items-start gap-3">
+          <Feather className="mt-1 h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
+          <div>
+            <p className="text-3xl font-medium tracking-tight sm:text-4xl">
+              Afterthought
+            </p>
+            <p className="mt-2 writing-text text-lg text-foreground/80">
+              Nothing written here yet.
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Give this month a few honest lines to remember.
+            </p>
+            <div className="mt-3 inline-flex rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground">
+              Start writing
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -374,21 +407,32 @@ function WelcomePreview() {
 
 function WritePreview() {
   return (
-    <div className="flex h-full flex-col">
-      <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        New entry
-      </p>
-      <div className="mt-5 flex flex-1 flex-col rounded-xl border border-border/80 bg-card/55 p-5 sm:p-7">
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-xs text-muted-foreground">Today</span>
-          <span className="h-2 w-2 rounded-full bg-primary/60" />
-        </div>
-        <p className="writing-text mt-8 text-xl leading-8 text-foreground/90 sm:text-2xl">
-          I keep returning to the same question, but maybe that is the point.
+    <div className="flex h-full min-h-[19rem] flex-col">
+      <div className="flex items-start justify-between gap-4">
+        <span className="text-xs text-muted-foreground">← Back</span>
+        <span className="text-right text-[0.65rem] text-muted-foreground">
+          Today · 9:41 AM
+        </span>
+      </div>
+      <div className="mt-7 space-y-3">
+        <p className="writing-text text-xl leading-7 text-foreground/90">
+          What has been taking up more space in your mind than you expected?
         </p>
-        <div className="mt-auto border-t border-border/70 pt-5 text-xs text-muted-foreground">
-          Your entry is saved locally when you finish.
-        </div>
+        <p className="writing-text text-lg leading-7 text-muted-foreground">
+          What are you noticing about the way you want to move through this season?
+        </p>
+        <p className="text-[0.65rem] text-muted-foreground">Supermemory context</p>
+      </div>
+      <div className="mt-6 flex flex-1 rounded-lg border border-border bg-card/35 px-4 py-4">
+        <span className="writing-text text-sm text-muted-foreground/50">
+          Begin wherever your attention is resting.
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+        <span>No words yet</span>
+        <span className="rounded-md bg-secondary px-3 py-1.5 text-foreground/40">
+          Finish
+        </span>
       </div>
     </div>
   );
@@ -396,121 +440,110 @@ function WritePreview() {
 
 function ReflectPreview() {
   return (
-    <div>
-      <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        Reflections
+    <div className="min-h-[19rem]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted-foreground">Reflections</p>
+          <h2 className="mt-1 text-2xl font-medium">Threads worth noticing</h2>
+        </div>
+        <div className="rounded-md border border-border px-2 py-1.5 text-[0.65rem] text-muted-foreground">
+          <RefreshCw className="mr-1 inline h-3 w-3" aria-hidden="true" />
+          Refresh
+        </div>
+      </div>
+      <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">
+        Supermemory keeps source moments; Groq helps arrange them into grounded threads.
       </p>
-      <div className="mt-5 grid grid-cols-7 overflow-hidden rounded-lg border border-border/70 text-center text-[0.62rem]">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-          <span
-            key={`${day}-${index}`}
-            className="border-b border-border/70 px-1 py-2 text-muted-foreground"
-          >
-            {day}
-          </span>
-        ))}
-        {Array.from({ length: 21 }, (_, index) => (
-          <span
-            key={index}
-            className={cn(
-              'flex aspect-square items-center justify-center border-b border-r border-border/60 text-muted-foreground',
-              [3, 8, 12, 17].includes(index) && 'bg-accent/55 text-foreground',
-            )}
-          >
-            {index + 1}
-          </span>
-        ))}
+      <div className="mt-5 rounded-lg border border-border bg-card/65 p-4">
+        <p className="text-sm font-medium">
+          Memory index is ready for your first reflection
+        </p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          Your saved reflections stay on this machine.
+        </p>
       </div>
-      <div className="mt-5 space-y-3">
-        <ReflectionLine text="The thing I thought I had settled keeps asking for attention." />
-        <ReflectionLine text="A small shift is still a shift." />
+      <div className="mt-5 border-t border-border pt-5">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          The reflection loop
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          Write locally, remember through Supermemory, then use Groq to look again.
+        </p>
       </div>
+      <p className="mt-5 text-xs text-muted-foreground">
+        Nothing has been remembered yet. Finish an entry and it will surface here.
+      </p>
     </div>
   );
 }
 
 function ProfilePreview() {
   return (
-    <div className="flex h-full flex-col">
-      <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        You
+    <div className="min-h-[19rem]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-muted-foreground">You</p>
+          <h2 className="mt-1 text-2xl font-medium">A portrait in progress</h2>
+        </div>
+        <div className="rounded-md border border-border px-2 py-1.5 text-[0.65rem] text-muted-foreground">
+          <RefreshCw className="mr-1 inline h-3 w-3" aria-hidden="true" />
+          Refresh
+        </div>
+      </div>
+      <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">
+        A cautious portrait of what may be changing and what may hold steady.
       </p>
-      <h2 className="mt-5 max-w-md text-2xl font-medium leading-tight sm:text-3xl">
-        A portrait in progress
-      </h2>
-      <div className="mt-8 space-y-6">
-        <ProfileLine label="What seems to be shifting" width="76%" />
-        <ProfileLine label="What holds steady" width="58%" />
-        <ProfileLine label="Threads worth noticing" width="68%" />
+      <div className="mt-8 border-t border-border pt-6">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          What seems to be shifting
+        </p>
+        <p className="mt-4 writing-text text-lg leading-7 text-muted-foreground/60">
+          Nothing is remembered yet.
+        </p>
       </div>
-      <div className="mt-auto flex items-center gap-2 pt-8 text-xs text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-        Built slowly from what you choose to share
-      </div>
+      <p className="mt-6 text-xs text-muted-foreground">
+        Finish an entry to begin the longer view.
+      </p>
     </div>
   );
 }
 
 function CalendarPreview() {
+  return <WelcomePreview />;
+}
+
+function EmptyCalendarGrid() {
+  const days = Array.from({ length: 35 }, (_, index) => index + 1);
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Calendar
-          </p>
-          <h2 className="mt-3 text-2xl font-medium sm:text-3xl">July 2026</h2>
-        </div>
-        <CalendarDays className="h-5 w-5 text-primary" aria-hidden="true" />
-      </div>
-      <div className="mt-7 grid flex-1 grid-cols-7 gap-px overflow-hidden rounded-lg border border-border/70 bg-border/70">
-        {Array.from({ length: 35 }, (_, index) => (
-          <span
-            key={index}
-            className={cn(
-              'flex min-h-9 items-start justify-end bg-background p-1.5 text-[0.6rem] text-muted-foreground sm:min-h-11',
-              [7, 14, 21, 28].includes(index) && 'bg-accent/55 text-foreground',
-            )}
-          >
-            {index + 1 <= 31 ? index + 1 : ''}
-          </span>
-        ))}
-      </div>
-      <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-        <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-        Your first reflection can start today.
-      </div>
+    <div className="mt-5 grid grid-cols-7 overflow-hidden rounded-lg border border-border/70 text-center text-[0.55rem]">
+      {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
+        <span
+          key={day}
+          className="border-b border-border/70 px-1 py-2 text-muted-foreground"
+        >
+          {day}
+        </span>
+      ))}
+      {days.map((day) => (
+        <span
+          key={day}
+          className="flex aspect-square items-start justify-end border-b border-r border-border/60 bg-background p-1 text-muted-foreground"
+        >
+          {day <= 31 ? day : ''}
+        </span>
+      ))}
     </div>
   );
 }
 
-function PreviewCard({ label, icon }: { label: string; icon: React.ReactNode }) {
+function PreviewIconButton({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/60 p-3 text-sm">
-      <span className="text-primary">{icon}</span>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function ReflectionLine({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg border border-border/70 bg-card/55 px-4 py-3">
-      <p className="writing-text text-sm leading-6 text-foreground/85">{text}</p>
-    </div>
-  );
-}
-
-function ProfileLine({ label, width }: { label: string; width: string }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
-      </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-        <div className="h-full rounded-full bg-primary/55" style={{ width }} />
-      </div>
-    </div>
+    <span
+      aria-label={label}
+      className="flex h-6 w-6 items-center justify-center rounded-md border border-border text-xs text-muted-foreground"
+    >
+      {label === 'Previous month' ? '‹' : '›'}
+    </span>
   );
 }

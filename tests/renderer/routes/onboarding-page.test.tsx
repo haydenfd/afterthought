@@ -57,7 +57,7 @@ describe('OnboardingPage', () => {
       screen.getByRole('heading', { name: 'Add your Groq key' }),
     ).toBeInTheDocument();
     const openButton = screen.getByRole('button', {
-      name: 'Verify key and open Calendar',
+      name: 'Open Calendar',
     });
     expect(openButton).toBeDisabled();
 
