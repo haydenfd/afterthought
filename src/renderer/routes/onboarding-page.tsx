@@ -4,10 +4,9 @@ import {
   CalendarDays,
   Feather,
   KeyRound,
+  Pencil,
   Plus,
-  RefreshCw,
   Settings,
-  UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { GroqApiKeyStatus } from '../../shared/preferences';
 
-type PreviewKind = 'welcome' | 'write' | 'reflect' | 'profile' | 'calendar';
+type PreviewKind = 'welcome' | 'write' | 'reflect' | 'setup';
 
 type OnboardingSlide = {
   eyebrow: string;
@@ -32,36 +31,29 @@ const slides: OnboardingSlide[] = [
     eyebrow: 'A quieter place to think',
     title: 'Welcome to Afterthought',
     description:
-      'A private journal for noticing what is on your mind, then seeing what it connects to over time.',
+      'A local-first journal for noticing what is on your mind, then seeing what keeps returning over time.',
     preview: 'welcome',
   },
   {
     eyebrow: 'Start with today',
     title: 'Write without performing',
     description:
-      'Open a fresh page and follow the thought wherever it goes. Your entries are saved locally first, with optional memory continuity over time.',
+      'Begin with a gentle question and follow the thought wherever it goes. Your entries are saved locally first, while the memory layer carries useful context into later sessions.',
     preview: 'write',
   },
   {
     eyebrow: 'Look back with care',
-    title: 'Find the threads between days',
+    title: 'Notice what keeps returning',
     description:
-      'Afterthought brings your reflections together so recurring questions and quiet patterns become easier to notice.',
+      'Reflections distills your writing into grounded threads, then shows recurring themes as they rise and quietly fade with time.',
     preview: 'reflect',
   },
   {
-    eyebrow: 'A portrait in progress',
-    title: 'See who you are becoming',
-    description:
-      'Over time, your writing gathers into a cautious portrait of what is changing and what holds steady.',
-    preview: 'profile',
-  },
-  {
     eyebrow: 'Before you begin',
-    title: 'Add your Groq key',
+    title: 'Bring your reflection layer online',
     description:
-      'Afterthought uses Groq for its reflection layer. Add a valid key to continue.',
-    preview: 'calendar',
+      'Add a Groq API key to enable adaptive questions, grounded threads, and temporal reflections. Your key is encrypted locally.',
+    preview: 'setup',
   },
 ];
 
@@ -307,8 +299,8 @@ function FeaturePreview({ kind }: { kind: PreviewKind }) {
       ? 'New Entry'
       : kind === 'reflect'
         ? 'Reflections'
-        : kind === 'profile'
-          ? 'You'
+        : kind === 'setup'
+          ? 'Settings'
           : 'Calendar';
 
   return (
@@ -322,8 +314,7 @@ function FeaturePreview({ kind }: { kind: PreviewKind }) {
           {kind === 'welcome' ? <WelcomePreview /> : null}
           {kind === 'write' ? <WritePreview /> : null}
           {kind === 'reflect' ? <ReflectPreview /> : null}
-          {kind === 'profile' ? <ProfilePreview /> : null}
-          {kind === 'calendar' ? <CalendarPreview /> : null}
+          {kind === 'setup' ? <SetupPreview /> : null}
         </div>
       </div>
     </div>
@@ -334,7 +325,6 @@ function PreviewSidebar({ active }: { active: string }) {
   const items = [
     ['Calendar', CalendarDays],
     ['Reflections', Feather],
-    ['You', UserRound],
     ['Settings', Settings],
   ] as const;
 
@@ -382,23 +372,15 @@ function WelcomePreview() {
         </div>
       </div>
       <EmptyCalendarGrid />
-      <div className="mt-5 border-t border-border/70 pt-5">
-        <div className="flex items-start gap-3">
-          <Feather className="mt-1 h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
-          <div>
-            <p className="text-3xl font-medium tracking-tight sm:text-4xl">
-              Afterthought
-            </p>
-            <p className="mt-2 writing-text text-lg text-foreground/80">
-              Nothing written here yet.
-            </p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Give this month a few honest lines to remember.
-            </p>
-            <div className="mt-3 inline-flex rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground">
-              Start writing
-            </div>
-          </div>
+      <div className="mt-5 border-t border-border/70 pt-5 lg:ml-auto lg:w-44 lg:border-l lg:border-t-0 lg:pl-5">
+        <p className="writing-text text-lg leading-7 text-foreground/80">
+          Nothing written here yet.
+        </p>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          Give this month a few honest lines to remember.
+        </p>
+        <div className="mt-3 inline-flex rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground">
+          Start writing
         </div>
       </div>
     </div>
@@ -409,30 +391,30 @@ function WritePreview() {
   return (
     <div className="flex h-full min-h-[19rem] flex-col">
       <div className="flex items-start justify-between gap-4">
-        <span className="text-xs text-muted-foreground">← Back</span>
-        <span className="text-right text-[0.65rem] text-muted-foreground">
-          Today · 9:41 AM
+        <span className="inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground">
+          <ArrowLeft className="mr-1.5 h-3 w-3" aria-hidden="true" />
+          Back
+        </span>
+        <span className="rounded-md bg-primary px-2.5 py-1.5 text-xs text-primary-foreground">
+          Finish
         </span>
       </div>
       <div className="mt-7 space-y-3">
-        <p className="writing-text text-xl leading-7 text-foreground/90">
+        <p className="writing-text text-xl leading-7 text-foreground">
           What has been taking up more space in your mind than you expected?
         </p>
-        <p className="writing-text text-lg leading-7 text-muted-foreground">
+        <p className="writing-text text-xl leading-7 text-foreground">
           What are you noticing about the way you want to move through this season?
         </p>
-        <p className="text-[0.65rem] text-muted-foreground">Supermemory context</p>
       </div>
-      <div className="mt-6 flex flex-1 rounded-lg border border-border bg-card/35 px-4 py-4">
-        <span className="writing-text text-sm text-muted-foreground/50">
-          Begin wherever your attention is resting.
+      <div className="mt-6 flex min-h-24 flex-1 border-b border-border px-0 py-4">
+        <span className="writing-text text-base text-muted-foreground/50">
+          Start typing…
         </span>
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-        <span>No words yet</span>
-        <span className="rounded-md bg-secondary px-3 py-1.5 text-foreground/40">
-          Finish
-        </span>
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+        <Pencil className="h-3 w-3" aria-hidden="true" />
+        <span>End of journal entry</span>
       </div>
     </div>
   );
@@ -443,73 +425,92 @@ function ReflectPreview() {
     <div className="min-h-[19rem]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs text-muted-foreground">Reflections</p>
-          <h2 className="mt-1 text-2xl font-medium">Threads worth noticing</h2>
-        </div>
-        <div className="rounded-md border border-border px-2 py-1.5 text-[0.65rem] text-muted-foreground">
-          <RefreshCw className="mr-1 inline h-3 w-3" aria-hidden="true" />
-          Refresh
+          <h2 className="text-2xl font-medium">Reflections</h2>
         </div>
       </div>
-      <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">
-        Supermemory keeps source moments; Groq helps arrange them into grounded threads.
-      </p>
       <div className="mt-5 rounded-lg border border-border bg-card/65 p-4">
-        <p className="text-sm font-medium">
-          Memory index is ready for your first reflection
-        </p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Your saved reflections stay on this machine.
-        </p>
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 rounded-full bg-secondary p-2 text-muted-foreground">
+            <Feather className="h-4 w-4" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Look across time</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Ask how something has changed, using earlier and later moments from your
+              journal.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <span className="min-w-0 flex-1 rounded-md border border-border px-2.5 py-2 text-[0.65rem] text-muted-foreground">
+            What has changed in how I relate to uncertainty?
+          </span>
+          <span className="rounded-md bg-primary px-2.5 py-2 text-[0.65rem] text-primary-foreground">
+            Compare
+          </span>
+        </div>
       </div>
       <div className="mt-5 border-t border-border pt-5">
-        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          The reflection loop
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-lg font-medium">A little perspective</p>
+          <span className="text-[0.6rem] text-muted-foreground">In motion</span>
+        </div>
+        <p className="mt-3 text-lg font-medium">Communicating with Friend X</p>
+        <p className="mt-2 writing-text text-sm leading-6 text-foreground/85">
+          There was tension, but direct conversation is becoming easier to choose.
         </p>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          Write locally, remember through Supermemory, then use Groq to look again.
+        <p className="mt-3 border-l border-primary/45 pl-3 writing-text text-sm italic leading-6 text-muted-foreground">
+          What happens in the next conversation?
         </p>
+        <div className="mt-4 border-t border-border pt-3 text-[0.65rem] text-muted-foreground">
+          July 16, 2026 · View source entry
+        </div>
       </div>
-      <p className="mt-5 text-xs text-muted-foreground">
-        Nothing has been remembered yet. Finish an entry and it will surface here.
-      </p>
+      <div className="mt-5 border-t border-border pt-5">
+        <p className="text-lg font-medium">Recurring themes</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          What keeps returning, and how present it feels lately.
+        </p>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+          <span className="text-base font-medium">Friendship</span>
+          <span className="text-xs text-muted-foreground">back again</span>
+          <span className="text-sm text-muted-foreground">Phone habits</span>
+          <span className="text-xs text-muted-foreground">just came up</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ProfilePreview() {
+function SetupPreview() {
   return (
-    <div className="min-h-[19rem]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground">You</p>
-          <h2 className="mt-1 text-2xl font-medium">A portrait in progress</h2>
-        </div>
-        <div className="rounded-md border border-border px-2 py-1.5 text-[0.65rem] text-muted-foreground">
-          <RefreshCw className="mr-1 inline h-3 w-3" aria-hidden="true" />
-          Refresh
+    <div className="min-h-[19rem] space-y-3">
+      <div>
+        <p className="text-xs text-muted-foreground">Settings</p>
+        <h2 className="mt-1 text-2xl font-medium">Settings</h2>
+      </div>
+      <div className="rounded-lg border border-border bg-card/65 p-3">
+        <p className="text-sm font-medium">Theme</p>
+        <div className="mt-2 rounded-md bg-primary px-2.5 py-2 text-xs text-primary-foreground">
+          ◐ Dark
         </div>
       </div>
-      <p className="mt-3 max-w-md text-xs leading-5 text-muted-foreground">
-        A cautious portrait of what may be changing and what may hold steady.
-      </p>
-      <div className="mt-8 border-t border-border pt-6">
-        <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-          What seems to be shifting
+      <div className="rounded-lg border border-border bg-card/65 p-3">
+        <p className="text-sm font-medium">Groq API connection</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          Required for adaptive questions and reflections.
         </p>
-        <p className="mt-4 writing-text text-lg leading-7 text-muted-foreground/60">
-          Nothing is remembered yet.
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-border px-2.5 py-2 text-xs">
+          <span className="text-muted-foreground">API key</span>
+          <span className="text-foreground/80">••••••••••LD</span>
+        </div>
       </div>
-      <p className="mt-6 text-xs text-muted-foreground">
-        Finish an entry to begin the longer view.
-      </p>
+      <div className="rounded-lg border border-border bg-card/65 p-3">
+        <p className="text-sm font-medium">Supermemory connection</p>
+        <p className="mt-2 text-xs text-muted-foreground">Supermemory Connected</p>
+      </div>
     </div>
   );
-}
-
-function CalendarPreview() {
-  return <WelcomePreview />;
 }
 
 function EmptyCalendarGrid() {

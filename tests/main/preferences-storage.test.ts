@@ -27,25 +27,27 @@ describe('preferences storage', () => {
     const preferencesPath = await createTemporaryPreferencesPath();
     const storage = createPreferencesStorage(preferencesPath);
 
-    const result = await storage.setPreferences({ userName: 'Hayden' });
+    const result = await storage.setPreferences({
+      supermemoryUrl: 'http://localhost:6767',
+    });
 
-    expect(result).toEqual({ userName: 'Hayden' });
+    expect(result).toEqual({ supermemoryUrl: 'http://localhost:6767' });
     expect(JSON.parse(await readFile(preferencesPath, 'utf8'))).toEqual({
-      userName: 'Hayden',
+      supermemoryUrl: 'http://localhost:6767',
     });
   });
 
   it('merges updates with previously saved preferences', async () => {
     const storage = createPreferencesStorage(await createTemporaryPreferencesPath());
-    await storage.setPreferences({ userName: 'Hayden' });
+    await storage.setPreferences({ appearance: 'light' });
 
-    const result = await storage.setPreferences({ userName: 'Alex' });
+    const result = await storage.setPreferences({ appearance: 'dark' });
 
-    expect(result).toEqual({ userName: 'Alex' });
-    expect(await storage.getPreferences()).toEqual({ userName: 'Alex' });
+    expect(result).toEqual({ appearance: 'dark' });
+    expect(await storage.getPreferences()).toEqual({ appearance: 'dark' });
   });
 
-  it('persists appearance and supermemoryUrl alongside userName', async () => {
+  it('persists appearance and supermemoryUrl', async () => {
     const storage = createPreferencesStorage(await createTemporaryPreferencesPath());
 
     const result = await storage.setPreferences({
@@ -81,7 +83,7 @@ describe('preferences storage', () => {
     expect(await storage.getPreferences()).toEqual({});
   });
 
-  it('migrates the legacy system appearance to dark', async () => {
+  it('migrates legacy appearance to dark and removes the old name field', async () => {
     const preferencesPath = await createTemporaryPreferencesPath();
     await writeFile(
       preferencesPath,
@@ -91,7 +93,6 @@ describe('preferences storage', () => {
     const storage = createPreferencesStorage(preferencesPath);
 
     expect(await storage.getPreferences()).toEqual({
-      userName: 'Hayden',
       appearance: 'dark',
     });
   });

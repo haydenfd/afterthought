@@ -1,7 +1,6 @@
 import type { EntryStorage } from './entry-storage';
 import { callGroq } from './groq-client';
 import { retrieveMemoryEvidence } from './memory-evidence';
-import type { PreferencesStorage } from './preferences-storage';
 import type {
   MemoryEvidenceItem,
   OpeningQuestions,
@@ -32,7 +31,6 @@ Respond with ONLY a JSON array of exactly two strings, nothing else:
 export async function generateOpeningQuestions(
   entryStorage: EntryStorage,
   clientPromise: Promise<SupermemoryClient>,
-  preferences: PreferencesStorage,
 ): Promise<OpeningQuestionsBundle | null> {
   const recentEntries = (await entryStorage.listEntries()).slice(0, recentEntryLimit);
 
@@ -54,13 +52,7 @@ export async function generateOpeningQuestions(
   const relevantMemories =
     memoriesResult?.status === 'fulfilled' ? memoriesResult.value : [];
 
-  const { userName } = await preferences.getPreferences();
-  const userMessage = buildUserMessage(
-    recentEntries,
-    profile,
-    relevantMemories,
-    userName,
-  );
+  const userMessage = buildUserMessage(recentEntries, profile, relevantMemories);
 
   const response = await callGroq([
     { role: 'system', content: systemPrompt },
@@ -118,13 +110,8 @@ function buildUserMessage(
   recentEntries: JournalEntry[],
   profile: { static: string[]; dynamic: string[] } | null,
   relevantMemories: MemoryEvidenceItem[],
-  userName: string | undefined,
 ): string {
   const parts: string[] = [];
-
-  if (userName) {
-    parts.push(`Their name is ${userName}.`);
-  }
 
   parts.push(
     'Their most recent journal entries, newest first (this is their canonical recent history):',

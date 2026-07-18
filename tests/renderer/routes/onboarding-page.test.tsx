@@ -21,7 +21,7 @@ describe('OnboardingPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Welcome to Afterthought' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('1 of 5')).toBeInTheDocument();
+    expect(screen.getByText('1 of 4')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Skip onboarding' }),
     ).not.toBeInTheDocument();
@@ -31,7 +31,7 @@ describe('OnboardingPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Write without performing' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('2 of 5')).toBeInTheDocument();
+    expect(screen.getByText('2 of 4')).toBeInTheDocument();
   });
 
   it('moves backward to the previous slide', () => {
@@ -43,18 +43,33 @@ describe('OnboardingPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Welcome to Afterthought' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('1 of 5')).toBeInTheDocument();
+    expect(screen.getByText('1 of 4')).toBeInTheDocument();
+  });
+
+  it('previews the single reflections page and recurring themes', () => {
+    renderOnboarding();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      screen.getByRole('heading', { name: 'Notice what keeps returning' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Recurring themes')).toBeInTheDocument();
+    expect(screen.queryByText('Threads worth noticing')).not.toBeInTheDocument();
+    expect(screen.queryByText('Refresh')).not.toBeInTheDocument();
+    expect(screen.queryByText('You')).not.toBeInTheDocument();
   });
 
   it('requires and saves a Groq key before opening Calendar', async () => {
     renderOnboarding();
 
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < 3; index += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     }
 
     expect(
-      screen.getByRole('heading', { name: 'Add your Groq key' }),
+      screen.getByRole('heading', { name: 'Bring your reflection layer online' }),
     ).toBeInTheDocument();
     const openButton = screen.getByRole('button', {
       name: 'Open Calendar',

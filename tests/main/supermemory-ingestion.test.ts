@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { JournalEntry } from '../../src/shared/journal-entry';
-import type { PreferencesStorage } from '../../src/main/preferences-storage';
 import type { SupermemoryClient } from '../../src/main/supermemory-client';
 import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
 import {
@@ -17,20 +16,12 @@ const entry: JournalEntry = {
   content: 'A quiet moment.',
 };
 
-function preferencesStub(userName?: string): PreferencesStorage {
-  return {
-    getPreferences: vi.fn().mockResolvedValue({ userName }),
-    setPreferences: vi.fn(),
-  };
-}
-
 describe('Supermemory journal ingestion', () => {
   it('sends the canonical completed entry to the local journal container', async () => {
     const add = vi.fn().mockResolvedValue({ id: 'document-id' });
 
     await createJournalMemoryIngestor(
       Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
-      preferencesStub(),
     ).ingestEntry(entry);
 
     expect(add).toHaveBeenCalledWith({
@@ -51,28 +42,12 @@ describe('Supermemory journal ingestion', () => {
 
     await createJournalMemoryIngestor(
       Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
-      preferencesStub(),
     ).ingestEntry(entry);
 
     const { content } = add.mock.calls[0]![0] as { content: string };
     expect(content).not.toContain(entry.id);
     expect(content).not.toContain('createdAt');
     expect(content).toContain('A quiet moment.');
-  });
-
-  it('includes entityContext with the saved name when one is set', async () => {
-    const add = vi.fn().mockResolvedValue({ id: 'document-id' });
-
-    await createJournalMemoryIngestor(
-      Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
-      preferencesStub('Hayden'),
-    ).ingestEntry(entry);
-
-    expect(add).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entityContext: "The user's name is Hayden.",
-      }),
-    );
   });
 
   it('ingests a complete guided session as prose with theme metadata', async () => {
@@ -96,7 +71,6 @@ describe('Supermemory journal ingestion', () => {
 
     await createJournalMemoryIngestor(
       Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
-      preferencesStub(),
     ).ingestEntry(guidedEntry);
 
     const request = add.mock.calls[0]![0] as {
@@ -119,7 +93,6 @@ describe('Supermemory journal ingestion', () => {
 
     await createJournalMemoryIngestor(
       Promise.resolve({ documents: { add } } as unknown as SupermemoryClient),
-      preferencesStub(),
     ).ingestEntry({
       ...entry,
       deeperReflection: {
@@ -141,7 +114,6 @@ describe('Supermemory journal ingestion', () => {
 
     await createJournalMemoryIngestor(
       Promise.resolve({ documents: { add, get } } as unknown as SupermemoryClient),
-      preferencesStub(),
     ).ingestEntry(entry);
 
     expect(get).toHaveBeenCalledTimes(2);
@@ -157,10 +129,7 @@ describe('Supermemory journal ingestion', () => {
       documents: { add },
       post,
     } as unknown as SupermemoryClient;
-    const ingestor = createJournalMemoryIngestor(
-      Promise.resolve(client),
-      preferencesStub(),
-    );
+    const ingestor = createJournalMemoryIngestor(Promise.resolve(client));
 
     await ingestor.ingestEntry(entry);
 

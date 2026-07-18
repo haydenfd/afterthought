@@ -3,7 +3,6 @@ export type Appearance = 'light' | 'dark';
 export type Preferences = {
   installedAt?: string;
   onboardingCompletedAt?: string;
-  userName?: string;
   appearance?: Appearance;
   supermemoryUrl?: string;
 };

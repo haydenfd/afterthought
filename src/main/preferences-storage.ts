@@ -43,7 +43,7 @@ export function createPreferencesStorage(preferencesPath: string): PreferencesSt
 function parsePreferences(value: string): Preferences {
   try {
     const parsed: unknown = JSON.parse(value);
-    const migrated = migrateLegacyAppearance(parsed);
+    const migrated = removeLegacyUserName(migrateLegacyAppearance(parsed));
     return isPreferences(migrated) ? migrated : {};
   } catch {
     return {};
@@ -61,6 +61,16 @@ function migrateLegacyAppearance(value: unknown): unknown {
   return record.appearance === 'system' ? { ...record, appearance: 'dark' } : value;
 }
 
+function removeLegacyUserName(value: unknown): unknown {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const preferences = { ...(value as Record<string, unknown>) };
+  delete preferences.userName;
+  return preferences;
+}
+
 function isPreferences(value: unknown): value is Preferences {
   if (!value || typeof value !== 'object') {
     return false;
@@ -71,7 +81,6 @@ function isPreferences(value: unknown): value is Preferences {
     (record.installedAt === undefined || typeof record.installedAt === 'string') &&
     (record.onboardingCompletedAt === undefined ||
       typeof record.onboardingCompletedAt === 'string') &&
-    (record.userName === undefined || typeof record.userName === 'string') &&
     (record.appearance === undefined ||
       appearanceValues.includes(record.appearance as string)) &&
     (record.supermemoryUrl === undefined || typeof record.supermemoryUrl === 'string')

@@ -4,7 +4,6 @@ import type {
   MemoryIngestionRecord,
   MemoryIngestionSummary,
 } from '../shared/memory';
-import type { PreferencesStorage } from './preferences-storage';
 import type { EntryStorage } from './entry-storage';
 import {
   createMemoryIngestionStorage,
@@ -30,7 +29,6 @@ export type JournalMemoryIngestorOptions = {
 
 export function createJournalMemoryIngestor(
   clientPromise: Promise<SupermemoryClient>,
-  preferences: PreferencesStorage,
   options: JournalMemoryIngestorOptions = {},
 ): JournalMemoryIngestor {
   const stateStorage = options.stateStorage ?? createMemoryIngestionStorage();
@@ -236,8 +234,7 @@ export function createJournalMemoryIngestor(
 
     try {
       const client = await clientPromise;
-      const { userName } = await preferences.getPreferences();
-      const request = createDocumentRequest(entry, userName);
+      const request = createDocumentRequest(entry);
       const remote = await upsertRemoteDocument(client, current, request);
       const remoteDocumentId = remote.id ?? current.remoteDocumentId;
       activeRemoteDocumentId = remoteDocumentId;
@@ -392,15 +389,11 @@ export function createJournalMemoryIngestor(
   return { ingestEntry, start, getStatus, retryFailed };
 }
 
-function createDocumentRequest(
-  entry: JournalEntry,
-  userName: string | undefined,
-): {
+function createDocumentRequest(entry: JournalEntry): {
   content: string;
   containerTag: string;
   customId: string;
   metadata: Record<string, string>;
-  entityContext?: string;
 } {
   return {
     content: formatEntryForMemory(entry),
@@ -413,7 +406,6 @@ function createDocumentRequest(
       localDate: entry.createdAt.slice(0, 10),
       ...(entry.themes?.length ? { themes: entry.themes.join(', ') } : {}),
     },
-    ...(userName ? { entityContext: `The user's name is ${userName}.` } : {}),
   };
 }
 

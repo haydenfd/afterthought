@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EntryStorage } from '../../src/main/entry-storage';
-import type { PreferencesStorage } from '../../src/main/preferences-storage';
 import type { SupermemoryClient } from '../../src/main/supermemory-client';
 import type { JournalEntry } from '../../src/shared/journal-entry';
 
@@ -30,13 +29,6 @@ function entryStorageStub(entries: JournalEntry[] = [recentEntry]): EntryStorage
     createEntry: vi.fn(),
     getEntry: vi.fn(),
     listEntries: vi.fn().mockResolvedValue(entries),
-  };
-}
-
-function preferencesStub(userName?: string): PreferencesStorage {
-  return {
-    getPreferences: vi.fn().mockResolvedValue({ userName }),
-    setPreferences: vi.fn(),
   };
 }
 
@@ -72,11 +64,7 @@ describe('generateOpeningQuestions', () => {
     const client = clientWithMemory();
 
     await expect(
-      generateOpeningQuestions(
-        entryStorageStub([]),
-        Promise.resolve(client),
-        preferencesStub(),
-      ),
+      generateOpeningQuestions(entryStorageStub([]), Promise.resolve(client)),
     ).resolves.toBeNull();
     expect(callGroq).not.toHaveBeenCalled();
   });
@@ -87,7 +75,6 @@ describe('generateOpeningQuestions', () => {
     const result = await generateOpeningQuestions(
       entryStorageStub(),
       Promise.resolve(clientWithMemory()),
-      preferencesStub('Hayden'),
     );
 
     expect(result).toMatchObject({
@@ -114,7 +101,6 @@ describe('generateOpeningQuestions', () => {
     await generateOpeningQuestions(
       entryStorageStub(),
       Promise.resolve(clientWithMemory()),
-      preferencesStub(),
     );
 
     expect(callGroq).toHaveBeenCalledWith(expect.any(Array));
@@ -140,7 +126,6 @@ describe('generateOpeningQuestions', () => {
     await generateOpeningQuestions(
       entryStorageStub([entryWithFollowUp]),
       Promise.resolve(clientWithMemory()),
-      preferencesStub(),
     );
 
     const [messages] = vi.mocked(callGroq).mock.calls[0]!;
@@ -159,7 +144,6 @@ describe('generateOpeningQuestions', () => {
     await generateOpeningQuestions(
       entryStorageStub(),
       Promise.resolve(clientWithMemory()),
-      preferencesStub(),
     );
 
     const [messages] = vi.mocked(callGroq).mock.calls[0]!;
@@ -176,11 +160,7 @@ describe('generateOpeningQuestions', () => {
     vi.mocked(callGroq).mockResolvedValue('not json at all');
 
     await expect(
-      generateOpeningQuestions(
-        entryStorageStub(),
-        Promise.resolve(clientWithMemory()),
-        preferencesStub(),
-      ),
+      generateOpeningQuestions(entryStorageStub(), Promise.resolve(clientWithMemory())),
     ).resolves.toBeNull();
   });
 
@@ -188,11 +168,7 @@ describe('generateOpeningQuestions', () => {
     vi.mocked(callGroq).mockResolvedValue(JSON.stringify(['Only one question?']));
 
     await expect(
-      generateOpeningQuestions(
-        entryStorageStub(),
-        Promise.resolve(clientWithMemory()),
-        preferencesStub(),
-      ),
+      generateOpeningQuestions(entryStorageStub(), Promise.resolve(clientWithMemory())),
     ).resolves.toBeNull();
   });
 
@@ -200,11 +176,7 @@ describe('generateOpeningQuestions', () => {
     vi.mocked(callGroq).mockResolvedValue(null);
 
     await expect(
-      generateOpeningQuestions(
-        entryStorageStub(),
-        Promise.resolve(clientWithMemory()),
-        preferencesStub(),
-      ),
+      generateOpeningQuestions(entryStorageStub(), Promise.resolve(clientWithMemory())),
     ).resolves.toBeNull();
   });
 
@@ -214,7 +186,6 @@ describe('generateOpeningQuestions', () => {
     const result = await generateOpeningQuestions(
       entryStorageStub(),
       Promise.reject(new Error('offline')),
-      preferencesStub(),
     );
 
     expect(result).toMatchObject({

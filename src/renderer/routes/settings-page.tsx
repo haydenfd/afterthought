@@ -37,8 +37,6 @@ export function SettingsPage() {
     connectionMessage,
     testConnection,
   } = useSupermemory();
-  const [userName, setUserName] = useState('');
-  const [isNameLoaded, setIsNameLoaded] = useState(false);
   const [groqApiKey, setGroqApiKey] = useState('');
   const [groqStatus, setGroqStatus] = useState<GroqApiKeyStatus | null>(null);
   const [isGroqKeyEditing, setIsGroqKeyEditing] = useState(true);
@@ -51,19 +49,16 @@ export function SettingsPage() {
     let isCurrent = true;
 
     void Promise.all([
-      window.afterthought.preferences.get(),
       window.afterthought.groq.getStatus(),
       window.afterthought.groq.getApiKey(),
-    ]).then(([preferences, status, apiKey]) => {
+    ]).then(([status, apiKey]) => {
       if (!isCurrent) {
         return;
       }
 
-      setUserName(preferences.userName ?? '');
       setGroqStatus(status);
       setGroqApiKey(apiKey ?? '');
       setIsGroqKeyEditing(!status.configured || !apiKey);
-      setIsNameLoaded(true);
     });
 
     return () => {
@@ -74,35 +69,38 @@ export function SettingsPage() {
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
       <header className="mb-9">
-        <p className="text-sm text-muted-foreground">Settings</p>
-        <h1 className="mt-1 text-3xl font-medium">Preferences</h1>
+        <h1 className="text-3xl font-medium">Settings</h1>
       </header>
 
       <div className="route-content-enter space-y-5">
         <Card>
           <CardHeader>
-            <CardTitle>Name</CardTitle>
+            <CardTitle>Theme</CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              id="user-name"
-              value={userName}
-              disabled={!isNameLoaded}
-              onChange={(event) => setUserName(event.target.value)}
-              onBlur={() => {
-                void window.afterthought.preferences.set({
-                  userName: userName.trim(),
-                });
-              }}
-              placeholder="e.g. Jane Smith"
-              spellCheck={false}
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {appearanceOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={appearance === option.value ? 'default' : 'outline'}
+                  className={cn(
+                    'justify-start',
+                    appearance === option.value && 'text-primary-foreground',
+                  )}
+                  onClick={() => setAppearance(option.value)}
+                >
+                  <option.icon className="h-4 w-4" aria-hidden="true" />
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Groq reflection layer</CardTitle>
+            <CardTitle>Groq API connection</CardTitle>
             <CardDescription>
               Required for adaptive questions and reflections.
             </CardDescription>
@@ -218,31 +216,6 @@ export function SettingsPage() {
                   {groqAction === 'saving' ? 'Saving…' : 'Save key'}
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {appearanceOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={appearance === option.value ? 'default' : 'outline'}
-                  className={cn(
-                    'justify-start',
-                    appearance === option.value && 'text-primary-foreground',
-                  )}
-                  onClick={() => setAppearance(option.value)}
-                >
-                  <option.icon className="h-4 w-4" aria-hidden="true" />
-                  {option.label}
-                </Button>
-              ))}
             </div>
           </CardContent>
         </Card>
