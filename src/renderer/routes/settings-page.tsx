@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Check, KeyRound, Monitor, Moon, ShieldCheck, Sun, Wifi } from 'lucide-react';
+import { Check, KeyRound, Moon, Pencil, Sun, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SupermemoryStatus } from '@/components/supermemory/supermemory-status';
@@ -25,7 +25,6 @@ const appearanceOptions: Array<{
 }> = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
 ];
 
 export function SettingsPage() {
@@ -42,6 +41,7 @@ export function SettingsPage() {
   const [isNameLoaded, setIsNameLoaded] = useState(false);
   const [groqApiKey, setGroqApiKey] = useState('');
   const [groqStatus, setGroqStatus] = useState<GroqApiKeyStatus | null>(null);
+  const [isGroqKeyEditing, setIsGroqKeyEditing] = useState(true);
   const [groqAction, setGroqAction] = useState<'idle' | 'saving' | 'saved' | 'error'>(
     'idle',
   );
@@ -53,13 +53,16 @@ export function SettingsPage() {
     void Promise.all([
       window.afterthought.preferences.get(),
       window.afterthought.groq.getStatus(),
-    ]).then(([preferences, status]) => {
+      window.afterthought.groq.getApiKey(),
+    ]).then(([preferences, status, apiKey]) => {
       if (!isCurrent) {
         return;
       }
 
       setUserName(preferences.userName ?? '');
       setGroqStatus(status);
+      setGroqApiKey(apiKey ?? '');
+      setIsGroqKeyEditing(!status.configured || !apiKey);
       setIsNameLoaded(true);
     });
 
@@ -101,41 +104,56 @@ export function SettingsPage() {
           <CardHeader>
             <CardTitle>Groq reflection layer</CardTitle>
             <CardDescription>
-              Required. Encrypted locally; only the last two characters are shown.
+              Required for adaptive questions and reflections.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="groq-api-key">API key</Label>
-              <Input
-                id="groq-api-key"
-                type="password"
-                autoComplete="off"
-                value={groqApiKey}
-                disabled={groqStatus === null || groqAction === 'saving'}
-                onChange={(event) => {
-                  setGroqApiKey(event.target.value);
-                  setGroqAction('idle');
-                  setGroqMessage('');
-                }}
-                placeholder={groqStatus?.maskedKey ?? 'Paste your Groq API key'}
-                spellCheck={false}
-              />
-              <p className="text-xs text-muted-foreground">
-                After saving, the raw key is cleared from this page and only its masked
-                suffix is shown.
-              </p>
+              <div className="relative">
+                <Input
+                  id="groq-api-key"
+                  type="text"
+                  autoComplete="off"
+                  value={groqApiKey}
+                  readOnly={!isGroqKeyEditing}
+                  disabled={groqStatus === null || groqAction === 'saving'}
+                  onClick={() => {
+                    if (!isGroqKeyEditing) {
+                      setIsGroqKeyEditing(true);
+                    }
+                  }}
+                  onChange={(event) => {
+                    setGroqApiKey(event.target.value);
+                    setGroqAction('idle');
+                    setGroqMessage('');
+                  }}
+                  placeholder="Paste your Groq API key"
+                  className={cn(!isGroqKeyEditing && 'cursor-pointer pr-10')}
+                  spellCheck={false}
+                />
+                {groqStatus?.configured && !isGroqKeyEditing ? (
+                  <button
+                    type="button"
+                    aria-label="Edit Groq API key"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setIsGroqKeyEditing(true)}
+                  >
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 {groqStatus?.configured ? (
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <ShieldCheck
+                    <Check
                       className="h-3.5 w-3.5 text-emerald-600"
                       aria-hidden="true"
                     />
-                    Stored securely as <code>{groqStatus.maskedKey}</code>
+                    Groq key configured
                   </p>
                 ) : (
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -166,7 +184,10 @@ export function SettingsPage() {
                 <Button
                   type="button"
                   disabled={
-                    !groqApiKey.trim() || groqStatus === null || groqAction === 'saving'
+                    !groqApiKey.trim() ||
+                    groqStatus === null ||
+                    groqAction === 'saving' ||
+                    (groqStatus.configured && !isGroqKeyEditing)
                   }
                   onClick={() => {
                     setGroqAction('saving');
@@ -175,9 +196,9 @@ export function SettingsPage() {
                       .setApiKey(groqApiKey)
                       .then((status) => {
                         setGroqStatus(status);
-                        setGroqApiKey('');
+                        setIsGroqKeyEditing(false);
                         setGroqAction('saved');
-                        setGroqMessage('Groq key saved securely.');
+                        setGroqMessage('Groq key saved.');
                       })
                       .catch((error: unknown) => {
                         setGroqAction('error');
@@ -204,12 +225,9 @@ export function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
-            <CardDescription>
-              Applies immediately and is remembered next time you open the app.
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2">
               {appearanceOptions.map((option) => (
                 <Button
                   key={option.value}
@@ -231,15 +249,11 @@ export function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Local memory</CardTitle>
-            <CardDescription>
-              Saved locally first. Supermemory keeps continuity; Groq shapes questions
-              and reflections.
-            </CardDescription>
+            <CardTitle>Supermemory connection</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="supermemory-url">Local URL</Label>
+              <Label htmlFor="supermemory-url">Connection URL</Label>
               <Input
                 id="supermemory-url"
                 value={baseUrl}
@@ -250,12 +264,14 @@ export function SettingsPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background/55 p-3">
               <div className="space-y-1">
-                <SupermemoryStatus status={status} />
-                {lastCheckedAt ? (
-                  <p className="text-xs text-muted-foreground">
-                    As of {format(lastCheckedAt, 'p')}
-                  </p>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <SupermemoryStatus status={status} />
+                  {lastCheckedAt ? (
+                    <span className="text-xs text-muted-foreground">
+                      As of {format(lastCheckedAt, 'p')}
+                    </span>
+                  ) : null}
+                </div>
                 {connectionMessage ? (
                   <p className="text-xs text-muted-foreground">{connectionMessage}</p>
                 ) : null}

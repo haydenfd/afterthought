@@ -30,7 +30,7 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        'flex shrink-0 flex-col overflow-hidden border-r border-border bg-card/55 py-4 transition-[width] duration-200 ease-out-quart',
+        'flex h-screen shrink-0 flex-col overflow-hidden border-r border-border bg-card/55 py-4 transition-[width] duration-200 ease-out-quart',
         isOpen ? 'w-56 px-3' : 'w-12 px-1.5',
       )}
     >

@@ -33,6 +33,7 @@ declare global {
       };
       groq: {
         getStatus: () => Promise<GroqApiKeyStatus>;
+        getApiKey: () => Promise<string | null>;
         validateApiKey: (apiKey?: string) => Promise<GroqApiKeyStatus>;
         setApiKey: (apiKey: string) => Promise<GroqApiKeyStatus>;
         clearApiKey: () => Promise<GroqApiKeyStatus>;

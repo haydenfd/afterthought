@@ -51,6 +51,7 @@ describe('NewEntryPage', () => {
         'What has been taking up more space in your mind than you expected?',
       ),
     ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Start typing...')).toBeInTheDocument();
     expect(screen.queryByText("Today's prompt")).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Finish' })).toBeDisabled();
   });
@@ -83,7 +84,7 @@ describe('NewEntryPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows compact opening source context and saves it with the entry', async () => {
+  it('keeps source context out of the writing surface and saves it with the entry', async () => {
     const create = vi.fn().mockResolvedValue({ id: 'entry-id' });
     setAfterthoughtApi(
       vi.fn().mockResolvedValue({
@@ -99,10 +100,11 @@ describe('NewEntryPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Supermemory context')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Journal entry')).toBeInTheDocument();
+    expect(screen.queryByText('Supermemory context')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Started a phone cutoff routine at 11pm.'),
-    ).toBeInTheDocument();
+      screen.queryByText('Started a phone cutoff routine at 11pm.'),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Journal entry'), {
       target: { value: 'The cutoff changed my morning.' },

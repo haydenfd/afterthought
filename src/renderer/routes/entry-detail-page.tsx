@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -54,9 +54,16 @@ export function EntryDetailPage() {
 
   return (
     <section className="mx-auto min-h-screen max-w-4xl px-10 py-10">
-      <Button variant="ghost" asChild>
+      <Button
+        variant="outline"
+        asChild
+        className="group gap-0 transition-[color,background-color,border-color,transform,opacity,gap] hover:gap-2"
+      >
         <Link to="/calendar">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <ArrowLeft
+            className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:w-4 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+            aria-hidden="true"
+          />
           Calendar
         </Link>
       </Button>
@@ -133,8 +140,16 @@ export function EntryDetailPage() {
             <p className="text-sm text-muted-foreground">
               {isToday ? 'No entries yet today.' : 'No entries on this day.'}
             </p>
-            <Button type="button" onClick={() => void navigate('/entry/new')}>
+            <Button
+              type="button"
+              className="group gap-0 transition-[color,background-color,border-color,transform,opacity,gap] hover:gap-2"
+              onClick={() => void navigate('/entry/new')}
+            >
               Start writing
+              <Pencil
+                className="h-4 w-0 translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:w-4 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+                aria-hidden="true"
+              />
             </Button>
           </div>
         ) : null}

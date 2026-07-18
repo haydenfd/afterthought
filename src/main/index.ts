@@ -222,6 +222,7 @@ void app.whenReady().then(async () => {
   ipcMain.handle('memory:refresh', () => memory.refresh());
   ipcMain.handle('memory:retry-ingestion', () => memoryIngestion.retryFailed?.());
   ipcMain.handle('groq:get-status', () => groqApiKeyStorage.getStatus());
+  ipcMain.handle('groq:get-api-key', () => groqApiKeyStorage.getApiKey());
   ipcMain.handle('groq:validate-api-key', async (_event, value: unknown) => {
     const apiKey =
       typeof value === 'string' && value.trim()
@@ -274,9 +275,11 @@ void app.whenReady().then(async () => {
     return preferencesStorage.setPreferences({
       ...(typeof onboardingCompletedAt === 'string' ? { onboardingCompletedAt } : {}),
       ...(typeof userName === 'string' ? { userName } : {}),
-      ...(appearance === 'light' || appearance === 'dark' || appearance === 'system'
+      ...(appearance === 'light' || appearance === 'dark'
         ? { appearance }
-        : {}),
+        : appearance === 'system'
+          ? { appearance: 'dark' as const }
+          : {}),
       ...(typeof supermemoryUrl === 'string' ? { supermemoryUrl } : {}),
     });
   });

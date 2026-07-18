@@ -81,6 +81,21 @@ describe('preferences storage', () => {
     expect(await storage.getPreferences()).toEqual({});
   });
 
+  it('migrates the legacy system appearance to dark', async () => {
+    const preferencesPath = await createTemporaryPreferencesPath();
+    await writeFile(
+      preferencesPath,
+      JSON.stringify({ userName: 'Hayden', appearance: 'system' }),
+      'utf8',
+    );
+    const storage = createPreferencesStorage(preferencesPath);
+
+    expect(await storage.getPreferences()).toEqual({
+      userName: 'Hayden',
+      appearance: 'dark',
+    });
+  });
+
   it('falls back to an empty object for malformed JSON', async () => {
     const preferencesPath = await createTemporaryPreferencesPath();
     await writeFile(preferencesPath, '{not json', 'utf8');

@@ -20,7 +20,7 @@ interface ThemeState {
 const ThemeContext = createContext<ThemeState | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [appearance, setAppearanceState] = useState<Appearance>('system');
+  const [appearance, setAppearanceState] = useState<Appearance>('dark');
 
   const setAppearance = useCallback((next: Appearance): void => {
     setAppearanceState(next);
@@ -31,8 +31,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     let isCurrent = true;
 
     void window.afterthought.preferences.get().then((preferences) => {
-      if (isCurrent && preferences.appearance) {
-        setAppearanceState(preferences.appearance);
+      if (!isCurrent) {
+        return;
+      }
+
+      const nextAppearance: Appearance =
+        preferences.appearance === 'light' ? 'light' : 'dark';
+      setAppearanceState(nextAppearance);
+
+      if (preferences.appearance !== nextAppearance) {
+        void window.afterthought.preferences
+          .set({ appearance: nextAppearance })
+          .catch(() => {
+            // Keep the dark default in memory if preferences cannot be persisted.
+          });
       }
     });
 
@@ -42,16 +54,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
     const applyTheme = (): void => {
-      const resolvedAppearance =
-        appearance === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : appearance;
-
       const root = document.documentElement;
       root.classList.add('theme-switching');
-      root.classList.toggle('dark', resolvedAppearance === 'dark');
-      root.style.colorScheme = resolvedAppearance;
+      root.classList.toggle('dark', appearance === 'dark');
+      root.style.colorScheme = appearance;
 
       window.requestAnimationFrame(() => {
         root.classList.remove('theme-switching');
@@ -59,11 +66,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     applyTheme();
-    mediaQuery.addEventListener('change', applyTheme);
-
-    return () => {
-      mediaQuery.removeEventListener('change', applyTheme);
-    };
   }, [appearance]);
 
   const value = useMemo<ThemeState>(

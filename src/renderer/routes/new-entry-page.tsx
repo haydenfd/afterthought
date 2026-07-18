@@ -1,11 +1,4 @@
-import { format } from 'date-fns';
-import {
-  ArrowLeft,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  LoaderCircle,
-} from 'lucide-react';
+import { ArrowLeft, Check, LoaderCircle } from 'lucide-react';
 import { type AnimationEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useBeforeUnload, useNavigate } from 'react-router-dom';
 
@@ -36,10 +29,7 @@ export function NewEntryPage() {
   const [openingSourceMemories, setOpeningSourceMemories] = useState<
     MemoryEvidenceItem[]
   >([]);
-  const [isOpeningContextExpanded, setIsOpeningContextExpanded] = useState(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = useState(true);
-  const [startedAt] = useState(() => new Date());
-  const wordCount = countWords(draft);
   const questions: OpeningQuestions = aiQuestions ?? [...fallbackQuestions];
   const primaryQuestion = questions[0];
   const hasUnsavedContent = draft.trim().length > 0;
@@ -238,7 +228,7 @@ export function NewEntryPage() {
   return (
     <section
       className={cn(
-        'reflection-page min-h-screen bg-background px-6 py-6 text-foreground sm:px-10 sm:py-10',
+        'reflection-page flex min-h-screen flex-col bg-background px-6 py-6 text-foreground sm:px-10 sm:py-10',
         isClosing && 'reflection-page--closing',
       )}
       data-testid="reflection-page"
@@ -246,20 +236,29 @@ export function NewEntryPage() {
       onAnimationEnd={handleCloseAnimationEnd}
     >
       <div className="reflection-crumple-creases" aria-hidden="true" />
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
+      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
         <header className="mb-14 flex items-start justify-between gap-8">
-          <button
+          <Button
             type="button"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/80 transition-colors hover:text-foreground"
+            variant="outline"
+            className="group gap-0 transition-[color,background-color,border-color,transform,opacity,gap] hover:gap-2"
             aria-label="Back to Calendar"
             onClick={returnToCalendar}
           >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            <ArrowLeft
+              className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:w-4 group-focus-visible:translate-x-0 group-focus-visible:opacity-100"
+              aria-hidden="true"
+            />
             Back
-          </button>
-          <p className="text-right text-[11px] leading-4 text-muted-foreground/65">
-            {format(startedAt, 'EEE, MMM d · h:mm a')}
-          </p>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={isSaving || isClosing || !draft.trim()}
+            onClick={() => void handleFinishEntry()}
+          >
+            {isSaving ? 'Finishing…' : 'Finish'}
+          </Button>
         </header>
 
         <div className="flex flex-1 flex-col">
@@ -283,17 +282,9 @@ export function NewEntryPage() {
             <>
               <div className="mb-10 max-w-4xl space-y-6">
                 <h1 className="writing-text text-3xl leading-[1.28]">{questions[0]}</h1>
-                <p className="writing-text text-2xl leading-8 text-muted-foreground">
+                <p className="writing-text text-3xl leading-[1.28] text-foreground">
                   {questions[1]}
                 </p>
-                <MemoryThreadContext
-                  label="Supermemory context"
-                  memories={openingSourceMemories}
-                  expanded={isOpeningContextExpanded}
-                  onToggle={() =>
-                    setIsOpeningContextExpanded((isExpanded) => !isExpanded)
-                  }
-                />
               </div>
 
               <Textarea
@@ -303,31 +294,15 @@ export function NewEntryPage() {
                   setDraft(event.target.value);
                   autosizeTextarea(event.target);
                 }}
-                placeholder="Begin wherever your attention is resting."
+                placeholder="Start typing..."
                 className={cn(
-                  'writing-text min-h-[380px] flex-1 border-0 bg-transparent px-0 py-0 text-[22px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0',
+                  'writing-text min-h-[180px] border-0 bg-transparent px-0 py-0 text-[22px] leading-9 shadow-none placeholder:text-muted-foreground/40 focus-visible:ring-0',
                   'selection:bg-accent selection:text-accent-foreground',
                 )}
                 aria-label="Journal entry"
               />
 
-              <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
-                <p className="text-sm text-muted-foreground">
-                  {wordCount === 0
-                    ? 'No words yet'
-                    : `${wordCount} ${wordCount === 1 ? 'word' : 'words'}`}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isSaving || isClosing || !draft.trim()}
-                    onClick={() => void handleFinishEntry()}
-                  >
-                    {isSaving ? 'Finishing…' : 'Finish'}
-                  </Button>
-                </div>
-              </footer>
+              <div className="mt-8 border-t border-border" aria-hidden="true" />
               {saveError ? (
                 <p className="mt-3 text-sm text-muted-foreground" role="alert">
                   {saveError}
@@ -341,11 +316,6 @@ export function NewEntryPage() {
   );
 }
 
-function countWords(value: string): number {
-  const words = value.trim().match(/\S+/g);
-  return words?.length ?? 0;
-}
-
 function autosizeTextarea(element: HTMLTextAreaElement | null): void {
   if (!element) {
     return;
@@ -353,68 +323,4 @@ function autosizeTextarea(element: HTMLTextAreaElement | null): void {
 
   element.style.height = 'auto';
   element.style.height = `${element.scrollHeight}px`;
-}
-
-function MemoryThreadContext({
-  label,
-  memories,
-  expanded,
-  onToggle,
-  className,
-}: {
-  label: string;
-  memories: MemoryEvidenceItem[];
-  expanded: boolean;
-  onToggle: () => void;
-  className?: string;
-}) {
-  if (memories.length === 0) {
-    return null;
-  }
-
-  const visibleMemories = expanded ? memories : memories.slice(0, 1);
-  const ToggleIcon = expanded ? ChevronDown : ChevronRight;
-
-  return (
-    <div
-      className={cn(
-        'max-w-3xl border-l border-border pl-4 text-sm leading-6 text-muted-foreground',
-        className,
-      )}
-    >
-      <p className="font-sans text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground/75">
-        {label}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground/75">
-        Source moments that helped shape today&apos;s opening questions.
-      </p>
-      <ul className="mt-2 space-y-2">
-        {visibleMemories.map((memory) => (
-          <li key={memory.id} className="writing-text text-base leading-7">
-            {previewMemory(memory.text)}
-          </li>
-        ))}
-      </ul>
-      {memories.length > 1 ? (
-        <button
-          type="button"
-          className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          onClick={onToggle}
-        >
-          <ToggleIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          {expanded ? 'Show less' : `Show ${memories.length - 1} more`}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function previewMemory(text: string): string {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-
-  if (normalized.length <= 180) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, 177).trimEnd()}...`;
 }

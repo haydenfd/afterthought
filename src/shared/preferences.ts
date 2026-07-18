@@ -1,4 +1,4 @@
-export type Appearance = 'light' | 'dark' | 'system';
+export type Appearance = 'light' | 'dark';
 
 export type Preferences = {
   installedAt?: string;

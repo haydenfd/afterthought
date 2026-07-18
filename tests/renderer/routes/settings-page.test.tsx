@@ -14,7 +14,7 @@ describe('SettingsPage', () => {
     });
   });
 
-  it('saves a Groq key without displaying the raw value', async () => {
+  it('saves a Groq key and keeps it visible until editing is requested', async () => {
     const setApiKey = vi.fn().mockResolvedValue({
       configured: true,
       secureStorageAvailable: true,
@@ -49,8 +49,9 @@ describe('SettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save key' }));
 
     await waitFor(() => expect(setApiKey).toHaveBeenCalledWith('gsk_test-secret'));
-    expect(await screen.findByText(/Stored securely as/)).toBeInTheDocument();
-    expect(screen.getByText('••••••••ey')).toBeInTheDocument();
-    expect(screen.queryByText('gsk_test-secret')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('gsk_test-secret')).toHaveAttribute('readonly');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Groq API key' }));
+    expect(screen.getByDisplayValue('gsk_test-secret')).not.toHaveAttribute('readonly');
   });
 });

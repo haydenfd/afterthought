@@ -35,6 +35,7 @@ const afterthoughtApi = {
   },
   groq: {
     getStatus: (): Promise<GroqApiKeyStatus> => ipcRenderer.invoke('groq:get-status'),
+    getApiKey: (): Promise<string | null> => ipcRenderer.invoke('groq:get-api-key'),
     validateApiKey: (apiKey?: string): Promise<GroqApiKeyStatus> =>
       ipcRenderer.invoke('groq:validate-api-key', apiKey),
     setApiKey: (apiKey: string): Promise<GroqApiKeyStatus> =>

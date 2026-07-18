@@ -43,13 +43,23 @@ export function createPreferencesStorage(preferencesPath: string): PreferencesSt
 function parsePreferences(value: string): Preferences {
   try {
     const parsed: unknown = JSON.parse(value);
-    return isPreferences(parsed) ? parsed : {};
+    const migrated = migrateLegacyAppearance(parsed);
+    return isPreferences(migrated) ? migrated : {};
   } catch {
     return {};
   }
 }
 
-const appearanceValues = ['light', 'dark', 'system'];
+const appearanceValues = ['light', 'dark'];
+
+function migrateLegacyAppearance(value: unknown): unknown {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  return record.appearance === 'system' ? { ...record, appearance: 'dark' } : value;
+}
 
 function isPreferences(value: unknown): value is Preferences {
   if (!value || typeof value !== 'object') {

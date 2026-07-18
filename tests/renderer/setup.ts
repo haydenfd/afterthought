@@ -41,6 +41,7 @@ Object.defineProperty(window, 'afterthought', {
         configured: false,
         secureStorageAvailable: true,
       }),
+      getApiKey: vi.fn().mockResolvedValue(null),
       validateApiKey: vi.fn().mockResolvedValue({
         configured: false,
         valid: false,
