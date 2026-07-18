@@ -1,13 +1,17 @@
+import { createHash } from 'node:crypto';
+
 import type {
   MemoryIngestionSummary,
   MemoryItem,
   MemoryProfile,
   MemoryRefreshResult,
 } from '../shared/memory';
-import { generateMemoryThreads } from './memory-insights';
+import { generateMemoryThreads, type MemoryInsightResult } from './memory-insights';
+import type { MemoryThreadCache, MemoryThreadCacheEntry } from './memory-thread-cache';
 import { JOURNAL_MEMORY_CONTAINER, type SupermemoryClient } from './supermemory-client';
 
 const memoryPageSize = 100;
+const memoryInsightFingerprintVersion = 'memory-insights-v1';
 
 interface MemoryListPage {
   memories?: unknown[];
@@ -29,10 +33,19 @@ type IngestionStatusProvider = {
   getStatus?: () => Promise<MemoryIngestionSummary>;
 };
 
+type MemoryServiceOptions = {
+  threadCache?: MemoryThreadCache;
+};
+
 export function createMemoryService(
   clientPromise: Promise<SupermemoryClient>,
   ingestion?: IngestionStatusProvider,
+  options: MemoryServiceOptions = {},
 ): MemoryService {
+  const cacheLoadPromise = options.threadCache?.load().catch(() => null);
+  let cachedThreads: MemoryThreadCacheEntry | null | undefined;
+  const synthesisPromises = new Map<string, Promise<MemoryInsightResult>>();
+
   return {
     async refresh() {
       const ingestionStatus = await readIngestionStatus(ingestion);
@@ -64,8 +77,8 @@ export function createMemoryService(
           ? normalizeMemories(memoriesResult.value)
           : [];
       const insights =
-        memories.length > 0
-          ? await generateMemoryThreads(memories, profile)
+        !partial && memories.length > 0
+          ? await getMemoryInsights(memories, profile)
           : undefined;
 
       return {
@@ -90,6 +103,81 @@ export function createMemoryService(
       };
     },
   };
+
+  async function getMemoryInsights(
+    memories: MemoryItem[],
+    profile: MemoryProfile,
+  ): Promise<MemoryInsightResult> {
+    const fingerprint = createMemoryFingerprint(memories, profile);
+    const cached = await loadCachedThreads();
+    if (cached?.fingerprint === fingerprint) {
+      return { status: 'available', threads: cached.threads };
+    }
+
+    const existingSynthesis = synthesisPromises.get(fingerprint);
+    if (existingSynthesis) {
+      return existingSynthesis;
+    }
+
+    const synthesis = generateMemoryThreads(memories, profile)
+      .then(async (result) => {
+        if (result.status === 'available') {
+          const entry: MemoryThreadCacheEntry = {
+            version: 1,
+            fingerprint,
+            threads: result.threads,
+          };
+          cachedThreads = entry;
+          await options.threadCache?.save(entry).catch(() => undefined);
+        }
+
+        return result;
+      })
+      .finally(() => {
+        synthesisPromises.delete(fingerprint);
+      });
+
+    synthesisPromises.set(fingerprint, synthesis);
+    return synthesis;
+  }
+
+  async function loadCachedThreads(): Promise<MemoryThreadCacheEntry | null> {
+    if (cachedThreads !== undefined) {
+      return cachedThreads;
+    }
+
+    cachedThreads = (await cacheLoadPromise) ?? null;
+    return cachedThreads;
+  }
+}
+
+function createMemoryFingerprint(
+  memories: MemoryItem[],
+  profile: MemoryProfile,
+): string {
+  const canonicalMemories = memories
+    .map((memory) => ({
+      id: memory.id,
+      text: memory.text,
+      sourceDate: memory.sourceDate ?? null,
+      sourceDocumentIds: [...(memory.sourceDocumentIds ?? [])].sort(),
+      sourceEntryIds: [...(memory.sourceEntryIds ?? [])].sort(),
+    }))
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+  const canonicalProfile = {
+    static: [...profile.static].sort(),
+    dynamic: [...profile.dynamic].sort(),
+  };
+
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: memoryInsightFingerprintVersion,
+        memories: canonicalMemories,
+        profile: canonicalProfile,
+      }),
+    )
+    .digest('hex');
 }
 
 function offlineResult(ingestion?: MemoryIngestionSummary): MemoryRefreshResult {

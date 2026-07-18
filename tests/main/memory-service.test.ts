@@ -2,17 +2,29 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { SupermemoryClient } from '../../src/main/supermemory-client';
 import { JOURNAL_MEMORY_CONTAINER } from '../../src/main/supermemory-client';
+import type {
+  MemoryThreadCache,
+  MemoryThreadCacheEntry,
+} from '../../src/main/memory-thread-cache';
 
 vi.mock('../../src/main/memory-insights', () => ({
-  generateMemoryThreads: vi.fn().mockResolvedValue({
-    status: 'unavailable',
-    threads: [],
-    message:
-      'Groq synthesis is not configured. Source memories are still available below.',
-  }),
+  generateMemoryThreads: vi.fn(),
 }));
 
+import { generateMemoryThreads } from '../../src/main/memory-insights';
 import { createMemoryService } from '../../src/main/memory-service';
+
+const unavailableInsights = {
+  status: 'unavailable' as const,
+  threads: [],
+  message:
+    'Groq synthesis is not configured. Source memories are still available below.',
+};
+
+beforeEach(() => {
+  vi.mocked(generateMemoryThreads).mockReset();
+  vi.mocked(generateMemoryThreads).mockResolvedValue(unavailableInsights);
+});
 
 describe('memory service', () => {
   it('normalizes profile and paginated extracted memories', async () => {
@@ -84,11 +96,6 @@ describe('memory service', () => {
       status: 'online',
       profile: { static: [], dynamic: [] },
       memories: [{ id: 'one', text: 'A remembered pattern.' }],
-      insights: {
-        status: 'unavailable',
-        message:
-          'Groq synthesis is not configured. Source memories are still available below.',
-      },
       message: 'Some memory details could not be loaded. Try refreshing again.',
     });
   });
@@ -152,4 +159,206 @@ describe('memory service', () => {
       message: 'Supermemory Local is unavailable. Your journal remains saved locally.',
     });
   });
+
+  it('ignores local-only saves and reuses cached threads without new Supermemory evidence', async () => {
+    const thread = {
+      id: 'attention-and-rest',
+      title: 'Attention and rest',
+      summary: 'A boundary is helping protect rest.',
+      kind: 'progress' as const,
+      sourceMemoryIds: ['memory-one'],
+      sourceEntryIds: ['entry-one'],
+      nextQuestion: 'What helps the boundary feel chosen?',
+    };
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [thread],
+    });
+    const cache = createFakeThreadCache();
+    const client = createStableClient();
+    const service = createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: cache,
+    });
+
+    const first = await service.refresh();
+    const second = await service.refresh();
+
+    expect(first.threads).toEqual([thread]);
+    expect(second.threads).toEqual([thread]);
+    expect(generateMemoryThreads).toHaveBeenCalledOnce();
+    expect(cache.save).toHaveBeenCalledOnce();
+  });
+
+  it('does not regenerate when Supermemory returns the same evidence in a new order', async () => {
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [],
+    });
+    const post = vi
+      .fn()
+      .mockResolvedValueOnce({
+        memories: [
+          { id: 'memory-one', memory: 'First memory.' },
+          { id: 'memory-two', memory: 'Second memory.' },
+        ],
+      })
+      .mockResolvedValueOnce({
+        memories: [
+          { id: 'memory-two', memory: 'Second memory.' },
+          { id: 'memory-one', memory: 'First memory.' },
+        ],
+      });
+    const client = {
+      profile: vi.fn().mockResolvedValue({ profile: { static: [], dynamic: [] } }),
+      post,
+    } as unknown as SupermemoryClient;
+    const service = createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: createFakeThreadCache(),
+    });
+
+    await service.refresh();
+    await service.refresh();
+
+    expect(generateMemoryThreads).toHaveBeenCalledOnce();
+  });
+
+  it('regenerates when ingested Supermemory evidence changes', async () => {
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [],
+    });
+    const post = vi
+      .fn()
+      .mockResolvedValueOnce({ memories: [{ id: 'memory-one', memory: 'Before.' }] })
+      .mockResolvedValueOnce({ memories: [{ id: 'memory-one', memory: 'After.' }] });
+    const client = {
+      profile: vi.fn().mockResolvedValue({ profile: { static: [], dynamic: [] } }),
+      post,
+    } as unknown as SupermemoryClient;
+    const service = createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: createFakeThreadCache(),
+    });
+
+    await service.refresh();
+    await service.refresh();
+
+    expect(generateMemoryThreads).toHaveBeenCalledTimes(2);
+  });
+
+  it('regenerates when ingested memories are added or removed', async () => {
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [],
+    });
+    const post = vi
+      .fn()
+      .mockResolvedValueOnce({ memories: [{ id: 'memory-one', memory: 'First.' }] })
+      .mockResolvedValueOnce({
+        memories: [
+          { id: 'memory-one', memory: 'First.' },
+          { id: 'memory-two', memory: 'Second.' },
+        ],
+      })
+      .mockResolvedValueOnce({ memories: [{ id: 'memory-one', memory: 'First.' }] });
+    const client = {
+      profile: vi.fn().mockResolvedValue({ profile: { static: [], dynamic: [] } }),
+      post,
+    } as unknown as SupermemoryClient;
+    const service = createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: createFakeThreadCache(),
+    });
+
+    await service.refresh();
+    await service.refresh();
+    await service.refresh();
+
+    expect(generateMemoryThreads).toHaveBeenCalledTimes(3);
+  });
+
+  it('reuses a persisted cache after service recreation', async () => {
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [],
+    });
+    const cache = createFakeThreadCache();
+    const client = createStableClient();
+
+    await createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: cache,
+    }).refresh();
+    vi.mocked(generateMemoryThreads).mockClear();
+    await createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: cache,
+    }).refresh();
+
+    expect(generateMemoryThreads).not.toHaveBeenCalled();
+  });
+
+  it('does not replace a valid cache when Supermemory returns partial evidence', async () => {
+    const thread = {
+      id: 'attention-and-rest',
+      title: 'Attention and rest',
+      summary: 'A boundary is helping protect rest.',
+      kind: 'progress' as const,
+      sourceMemoryIds: ['memory-one'],
+      sourceEntryIds: ['entry-one'],
+    };
+    vi.mocked(generateMemoryThreads).mockResolvedValue({
+      status: 'available',
+      threads: [thread],
+    });
+    const cache = createFakeThreadCache();
+    const client = {
+      profile: vi
+        .fn()
+        .mockResolvedValueOnce({ profile: { static: [], dynamic: [] } })
+        .mockRejectedValueOnce(new Error('profile unavailable')),
+      post: vi.fn().mockResolvedValue({
+        memories: [{ id: 'memory-one', memory: 'A stable memory.' }],
+      }),
+    } as unknown as SupermemoryClient;
+    const service = createMemoryService(Promise.resolve(client), undefined, {
+      threadCache: cache,
+    });
+
+    await service.refresh();
+    const partial = await service.refresh();
+
+    expect(partial.threads).toBeUndefined();
+    expect(cache.save).toHaveBeenCalledOnce();
+    expect(generateMemoryThreads).toHaveBeenCalledOnce();
+  });
 });
+
+function createStableClient(): SupermemoryClient {
+  return {
+    profile: vi.fn().mockResolvedValue({ profile: { static: [], dynamic: [] } }),
+    post: vi.fn().mockResolvedValue({
+      memories: [
+        {
+          id: 'memory-one',
+          memory: 'The phone cutoff made mornings calmer.',
+          metadata: { sourceDate: '2026-07-10T15:30:00.000Z', entryId: 'entry-one' },
+        },
+      ],
+    }),
+  } as unknown as SupermemoryClient;
+}
+
+function createFakeThreadCache(): MemoryThreadCache & {
+  load: ReturnType<typeof vi.fn>;
+  save: ReturnType<typeof vi.fn>;
+} {
+  let value: MemoryThreadCacheEntry | null = null;
+  return {
+    load: vi
+      .fn<() => Promise<MemoryThreadCacheEntry | null>>()
+      .mockImplementation(() => Promise.resolve(value)),
+    save: vi
+      .fn<(next: MemoryThreadCacheEntry) => Promise<void>>()
+      .mockImplementation((next) => {
+        value = next;
+        return Promise.resolve();
+      }),
+  };
+}

@@ -15,6 +15,7 @@ import { createGroqApiKeyStorage } from './groq-key-storage';
 import { createJournalService } from './journal-service';
 import { createMemoryService } from './memory-service';
 import { createMemoryIngestionStorage } from './memory-ingestion-storage';
+import { createMemoryThreadCache } from './memory-thread-cache';
 import { generateOpeningQuestions } from './opening-questions';
 import { createOpeningQuestionsStorage } from './opening-questions-storage';
 import { createPreferencesStorage } from './preferences-storage';
@@ -163,17 +164,17 @@ void app.whenReady().then(async () => {
       console.error('[supermemory] local server did not start', error);
     },
   );
-  const memoryIngestion = createJournalMemoryIngestor(
-    supermemoryClient,
-    preferencesStorage,
-    {
-      entryStorage,
-      stateStorage: createMemoryIngestionStorage(
-        join(app.getPath('userData'), 'memory-ingestion.json'),
-      ),
-    },
-  );
-  const memory = createMemoryService(supermemoryClient, memoryIngestion);
+  const memoryIngestion = createJournalMemoryIngestor(supermemoryClient, {
+    entryStorage,
+    stateStorage: createMemoryIngestionStorage(
+      join(app.getPath('userData'), 'memory-ingestion.json'),
+    ),
+  });
+  const memory = createMemoryService(supermemoryClient, memoryIngestion, {
+    threadCache: createMemoryThreadCache(
+      join(app.getPath('userData'), 'memory-threads.json'),
+    ),
+  });
   const journal = createJournalService(entryStorage, memoryIngestion);
   void memoryIngestion.start?.();
 
@@ -270,11 +271,12 @@ void app.whenReady().then(async () => {
       throw new Error('Invalid preferences update.');
     }
 
-    const { onboardingCompletedAt, userName, appearance, supermemoryUrl } =
-      update as Record<string, unknown>;
+    const { onboardingCompletedAt, appearance, supermemoryUrl } = update as Record<
+      string,
+      unknown
+    >;
     return preferencesStorage.setPreferences({
       ...(typeof onboardingCompletedAt === 'string' ? { onboardingCompletedAt } : {}),
-      ...(typeof userName === 'string' ? { userName } : {}),
       ...(appearance === 'light' || appearance === 'dark'
         ? { appearance }
         : appearance === 'system'
@@ -295,11 +297,7 @@ void app.whenReady().then(async () => {
       };
     }
 
-    const bundle = await generateOpeningQuestions(
-      entryStorage,
-      supermemoryClient,
-      preferencesStorage,
-    );
+    const bundle = await generateOpeningQuestions(entryStorage, supermemoryClient);
 
     if (!bundle) {
       return { questions: null, source: 'fallback' as const };

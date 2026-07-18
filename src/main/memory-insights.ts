@@ -53,7 +53,7 @@ export async function generateMemoryThreads(
       { role: 'system', content: systemPrompt },
       { role: 'user', content: buildContext(memories, profile) },
     ],
-    { jsonMode: true, temperature: 0.25, maxTokens: 900, timeoutMs: 4_000 },
+    { jsonMode: true, temperature: 0, maxTokens: 900, timeoutMs: 4_000 },
   );
 
   if (!response) {
