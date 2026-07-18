@@ -10,7 +10,7 @@ import type {
 } from '../shared/reflection';
 import { generateDeeperQuestion } from './deeper-reflection';
 import { createEntryStorage } from './entry-storage';
-import { configureGroqApiKey } from './groq-client';
+import { configureGroqApiKey, validateGroqApiKey } from './groq-client';
 import { createGroqApiKeyStorage } from './groq-key-storage';
 import { createJournalService } from './journal-service';
 import { createMemoryService } from './memory-service';
@@ -222,19 +222,46 @@ void app.whenReady().then(async () => {
   ipcMain.handle('memory:refresh', () => memory.refresh());
   ipcMain.handle('memory:retry-ingestion', () => memoryIngestion.retryFailed?.());
   ipcMain.handle('groq:get-status', () => groqApiKeyStorage.getStatus());
+  ipcMain.handle('groq:validate-api-key', async (_event, value: unknown) => {
+    const apiKey =
+      typeof value === 'string' && value.trim()
+        ? value.trim()
+        : await groqApiKeyStorage.getApiKey();
+    const currentStatus = await groqApiKeyStorage.getStatus();
+
+    if (!apiKey) {
+      return {
+        ...currentStatus,
+        valid: false,
+        message: 'Paste a Groq API key before continuing.',
+      };
+    }
+
+    const validation = await validateGroqApiKey(apiKey);
+    return {
+      ...currentStatus,
+      valid: validation.valid,
+      ...(validation.message ? { message: validation.message } : {}),
+    };
+  });
   ipcMain.handle('groq:set-api-key', async (_event, value: unknown) => {
     if (typeof value !== 'string') {
       throw new Error('Invalid Groq API key.');
     }
 
+    const validation = await validateGroqApiKey(value);
+    if (!validation.valid) {
+      throw new Error(validation.message ?? 'The Groq API key could not be validated.');
+    }
+
     const status = await groqApiKeyStorage.setApiKey(value);
     configureGroqApiKey(value);
-    return status;
+    return { ...status, valid: true };
   });
   ipcMain.handle('groq:clear-api-key', async () => {
     const status = await groqApiKeyStorage.clearApiKey();
     configureGroqApiKey(null);
-    return status;
+    return { ...status, valid: false };
   });
   ipcMain.handle('preferences:get', () => preferencesStorage.getPreferences());
   ipcMain.handle('preferences:set', (_event, update: unknown) => {
@@ -242,8 +269,10 @@ void app.whenReady().then(async () => {
       throw new Error('Invalid preferences update.');
     }
 
-    const { userName, appearance, supermemoryUrl } = update as Record<string, unknown>;
+    const { onboardingCompletedAt, userName, appearance, supermemoryUrl } =
+      update as Record<string, unknown>;
     return preferencesStorage.setPreferences({
+      ...(typeof onboardingCompletedAt === 'string' ? { onboardingCompletedAt } : {}),
       ...(typeof userName === 'string' ? { userName } : {}),
       ...(appearance === 'light' || appearance === 'dark' || appearance === 'system'
         ? { appearance }

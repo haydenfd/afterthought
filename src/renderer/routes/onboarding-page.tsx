@@ -4,15 +4,19 @@ import {
   CalendarDays,
   Check,
   Feather,
+  KeyRound,
   PanelLeft,
   Sparkles,
   UserRound,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import type { GroqApiKeyStatus } from '../../shared/preferences';
 
 type PreviewKind = 'welcome' | 'write' | 'reflect' | 'profile' | 'calendar';
 
@@ -53,10 +57,10 @@ const slides: OnboardingSlide[] = [
     preview: 'profile',
   },
   {
-    eyebrow: 'You are ready',
-    title: 'Make a little room for yourself',
+    eyebrow: 'Before you begin',
+    title: 'Add your Groq key',
     description:
-      'There is no right way to begin. Start with one honest thought, and let the rest take shape from there.',
+      'Afterthought uses Groq for its reflection layer. Add a valid key to continue.',
     preview: 'calendar',
   },
 ];
@@ -64,11 +68,76 @@ const slides: OnboardingSlide[] = [
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [groqApiKey, setGroqApiKey] = useState('');
+  const [groqStatus, setGroqStatus] = useState<GroqApiKeyStatus | null>(null);
+  const [groqAction, setGroqAction] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [groqMessage, setGroqMessage] = useState('');
   const slide = slides[currentIndex]!;
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === slides.length - 1;
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    void window.afterthought.groq.getStatus().then((status) => {
+      if (!isCurrent) {
+        return;
+      }
+
+      setGroqStatus(status);
+      if (status.configured) {
+        void window.afterthought.groq.validateApiKey().then((validatedStatus) => {
+          if (isCurrent) {
+            setGroqStatus(validatedStatus);
+          }
+        });
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   const finish = (): void => {
+    if (groqStatus?.valid === true) {
+      void completeOnboarding();
+      return;
+    }
+
+    if (!groqApiKey.trim()) {
+      setGroqAction('error');
+      setGroqMessage('A valid Groq API key is required to continue.');
+      return;
+    }
+
+    setGroqAction('saving');
+    setGroqMessage('');
+    void window.afterthought.groq
+      .setApiKey(groqApiKey)
+      .then((status) => {
+        if (status.valid !== true) {
+          throw new Error('Groq could not verify this key.');
+        }
+
+        setGroqStatus(status);
+        setGroqApiKey('');
+        return completeOnboarding();
+      })
+      .catch((error: unknown) => {
+        setGroqAction('error');
+        setGroqMessage(
+          error instanceof Error
+            ? error.message
+            : 'The Groq key could not be verified.',
+        );
+      });
+  };
+
+  const completeOnboarding = async (): Promise<void> => {
+    await window.afterthought.preferences.set({
+      onboardingCompletedAt: new Date().toISOString(),
+    });
     void navigate('/calendar');
   };
 
@@ -125,6 +194,54 @@ export function OnboardingPage() {
                 {slide.description}
               </p>
 
+              {isLast ? (
+                <div className="mt-8 max-w-md space-y-3 rounded-xl border border-border/80 bg-card/60 p-4">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-primary" aria-hidden="true" />
+                    <Label htmlFor="onboarding-groq-api-key">Groq API key</Label>
+                  </div>
+                  <Input
+                    id="onboarding-groq-api-key"
+                    type="password"
+                    autoComplete="off"
+                    value={groqApiKey}
+                    disabled={groqAction === 'saving'}
+                    onChange={(event) => {
+                      setGroqApiKey(event.target.value);
+                      setGroqStatus((status) => {
+                        if (!status) {
+                          return status;
+                        }
+
+                        const statusWithoutMessage = { ...status };
+                        delete statusWithoutMessage.message;
+                        return { ...statusWithoutMessage, valid: false };
+                      });
+                      setGroqAction('idle');
+                      setGroqMessage('');
+                    }}
+                    placeholder={groqStatus?.maskedKey ?? 'Paste your key'}
+                    spellCheck={false}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Encrypted locally. Only the last two characters are shown.
+                  </p>
+                  {groqStatus?.valid === true ? (
+                    <p
+                      className="text-xs text-emerald-700 dark:text-emerald-400"
+                      role="status"
+                    >
+                      Groq key verified.
+                    </p>
+                  ) : null}
+                  {groqStatus?.message || groqMessage ? (
+                    <p className="text-xs text-destructive" role="status">
+                      {groqMessage || groqStatus?.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="mt-10 flex flex-wrap items-center gap-3">
                 <Button
                   type="button"
@@ -152,8 +269,17 @@ export function OnboardingPage() {
                       );
                     }
                   }}
+                  disabled={
+                    isLast &&
+                    (groqAction === 'saving' ||
+                      (groqStatus?.valid !== true && !groqApiKey.trim()))
+                  }
                 >
-                  {isLast ? 'Open Calendar' : 'Continue'}
+                  {isLast
+                    ? groqAction === 'saving'
+                      ? 'Verifying…'
+                      : 'Verify key and open Calendar'
+                    : 'Continue'}
                   {isLast ? (
                     <CalendarDays
                       className="h-4 w-0 -translate-x-1 overflow-hidden opacity-0 transition-[width,opacity,transform] duration-150 ease-out-quart group-hover:w-4 group-hover:translate-x-0 group-hover:opacity-100"

@@ -59,6 +59,8 @@ function isPreferences(value: unknown): value is Preferences {
   const record = value as Record<string, unknown>;
   return (
     (record.installedAt === undefined || typeof record.installedAt === 'string') &&
+    (record.onboardingCompletedAt === undefined ||
+      typeof record.onboardingCompletedAt === 'string') &&
     (record.userName === undefined || typeof record.userName === 'string') &&
     (record.appearance === undefined ||
       appearanceValues.includes(record.appearance as string)) &&

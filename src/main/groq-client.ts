@@ -1,5 +1,6 @@
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_API_BASE_URL = 'https://api.groq.com/openai/v1';
+const GROQ_CHAT_API_URL = `${GROQ_API_BASE_URL}/chat/completions`;
 
 let configuredApiKey: string | null = null;
 
@@ -14,6 +15,55 @@ export function configureGroqApiKey(apiKey: string | null): void {
 
 export function isGroqConfigured(): boolean {
   return configuredApiKey !== null;
+}
+
+export type GroqApiKeyValidation = {
+  valid: boolean;
+  message?: string;
+};
+
+export async function validateGroqApiKey(
+  apiKey: string,
+): Promise<GroqApiKeyValidation> {
+  const normalizedApiKey = apiKey.trim();
+  if (!normalizedApiKey) {
+    return { valid: false, message: 'Paste a Groq API key before continuing.' };
+  }
+
+  try {
+    const response = await fetch(`${GROQ_API_BASE_URL}/models`, {
+      headers: { Authorization: `Bearer ${normalizedApiKey}` },
+      signal: AbortSignal.timeout(8_000),
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      return {
+        valid: false,
+        message: 'Groq rejected this API key. Check that it was copied correctly.',
+      };
+    }
+
+    if (response.status === 429) {
+      return {
+        valid: false,
+        message: 'Groq is rate-limiting validation right now. Try again shortly.',
+      };
+    }
+
+    return {
+      valid: false,
+      message: 'Groq could not validate this key right now. Try again.',
+    };
+  } catch {
+    return {
+      valid: false,
+      message: 'Could not reach Groq. Check your connection and try again.',
+    };
+  }
 }
 
 interface GroqChatCompletionResponse {
@@ -40,7 +90,7 @@ export async function callGroq(
   }
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(GROQ_CHAT_API_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,

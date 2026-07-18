@@ -1,14 +1,5 @@
 import { format } from 'date-fns';
-import {
-  Check,
-  KeyRound,
-  Monitor,
-  Moon,
-  ShieldCheck,
-  Sun,
-  Trash2,
-  Wifi,
-} from 'lucide-react';
+import { Check, KeyRound, Monitor, Moon, ShieldCheck, Sun, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { SupermemoryStatus } from '@/components/supermemory/supermemory-status';
@@ -110,10 +101,7 @@ export function SettingsPage() {
           <CardHeader>
             <CardTitle>Groq reflection layer</CardTitle>
             <CardDescription>
-              Optional: add a Groq API key to enable adaptive opening questions and
-              evidence-backed reflection threads. The key is encrypted with your
-              operating system&apos;s secure storage; Afterthought only shows the final
-              two characters after saving.
+              Required. Encrypted locally; only the last two characters are shown.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -152,7 +140,7 @@ export function SettingsPage() {
                 ) : (
                   <p className="flex items-center gap-2 text-xs text-muted-foreground">
                     <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-                    No Groq key configured
+                    Groq key required
                   </p>
                 )}
                 {groqStatus?.message ? (
@@ -175,32 +163,6 @@ export function SettingsPage() {
                 ) : null}
               </div>
               <div className="flex items-center gap-2">
-                {groqStatus?.configured ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={groqAction === 'saving'}
-                    onClick={() => {
-                      setGroqAction('saving');
-                      setGroqMessage('');
-                      void window.afterthought.groq
-                        .clearApiKey()
-                        .then((status) => {
-                          setGroqStatus(status);
-                          setGroqApiKey('');
-                          setGroqAction('idle');
-                          setGroqMessage('Groq key removed.');
-                        })
-                        .catch(() => {
-                          setGroqAction('error');
-                          setGroqMessage('The Groq key could not be removed.');
-                        });
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    Remove
-                  </Button>
-                ) : null}
                 <Button
                   type="button"
                   disabled={
@@ -271,10 +233,8 @@ export function SettingsPage() {
           <CardHeader>
             <CardTitle>Local memory</CardTitle>
             <CardDescription>
-              Your journal is saved locally first. Supermemory Local indexes authored
-              reflections for continuity; when Groq is configured, it receives current
-              writing and retrieved context to shape questions and threads. Generated
-              prompts are never indexed as memories.
+              Saved locally first. Supermemory keeps continuity; Groq shapes questions
+              and reflections.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { callGroq, configureGroqApiKey } from '../../src/main/groq-client';
+import {
+  callGroq,
+  configureGroqApiKey,
+  validateGroqApiKey,
+} from '../../src/main/groq-client';
 
 const originalFetch = global.fetch;
 
@@ -72,5 +76,31 @@ describe('callGroq', () => {
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(requestInit.body as string) as Record<string, unknown>;
     expect(body.response_format).toEqual({ type: 'json_object' });
+  });
+});
+
+describe('validateGroqApiKey', () => {
+  it('accepts a key when Groq returns the model list', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    global.fetch = fetchMock;
+
+    await expect(validateGroqApiKey(' gsk_test-secret ')).resolves.toEqual({
+      valid: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.groq.com/openai/v1/models',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer gsk_test-secret' },
+      }),
+    );
+  });
+
+  it('rejects unauthorized keys', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+
+    await expect(validateGroqApiKey('bad-key')).resolves.toEqual({
+      valid: false,
+      message: 'Groq rejected this API key. Check that it was copied correctly.',
+    });
   });
 });

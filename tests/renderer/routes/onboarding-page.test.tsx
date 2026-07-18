@@ -46,7 +46,7 @@ describe('OnboardingPage', () => {
     expect(screen.getByText('1 of 5')).toBeInTheDocument();
   });
 
-  it('opens Calendar after the final slide', async () => {
+  it('requires and saves a Groq key before opening Calendar', async () => {
     renderOnboarding();
 
     for (let index = 0; index < 4; index += 1) {
@@ -54,10 +54,27 @@ describe('OnboardingPage', () => {
     }
 
     expect(
-      screen.getByRole('heading', { name: 'Make a little room for yourself' }),
+      screen.getByRole('heading', { name: 'Add your Groq key' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Open Calendar' }));
+    const openButton = screen.getByRole('button', {
+      name: 'Verify key and open Calendar',
+    });
+    expect(openButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Groq API key'), {
+      target: { value: 'gsk_test-secret' },
+    });
+    fireEvent.click(openButton);
 
     expect(await screen.findByText(/entries this month/)).toBeInTheDocument();
+    expect(window.afterthought.groq.setApiKey).toHaveBeenCalledWith('gsk_test-secret');
+    const preferenceUpdates = vi
+      .mocked(window.afterthought.preferences.set)
+      .mock.calls.map(([update]) => update);
+    expect(
+      preferenceUpdates.some(
+        (update) => typeof update.onboardingCompletedAt === 'string',
+      ),
+    ).toBe(true);
   });
 });
