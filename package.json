@@ -1,6 +1,6 @@
 {
   "name": "afterthought",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "A reflective desktop journaling shell for Afterthought.",
   "author": "haydenfd <99377361+haydenfd@users.noreply.github.com>",
   "license": "MIT",
